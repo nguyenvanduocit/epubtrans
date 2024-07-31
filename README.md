@@ -7,6 +7,15 @@ This project aims to quickly translate epub books into Vietnamese. It packages t
 - [x] Only need to create a rough translation.
 - [x] Maintain the format of the original text.
 
+## Installation
+
+1. Install Go. You can download it from [here](https://golang.org/dl/).
+2. Install the tool
+
+```bash
+go install github.com/nguyenvanduocit/epubtrans@latest
+```
+
 ## Usage
 
 To manage the translation content, we need to mark the content that needs to be translated, then translate and mark the
@@ -31,19 +40,19 @@ export ANTHROPIC_KEY=your_anthropic_key
 1. Unpack the epub file.
 
  ```bash
- go run main.go unpack /path/to/file.epub
+epubtrans unpack /path/to/file.epub
  ```
 
 2. Clean up html files.
 
  ```bash
- go run main.go clean /path/to/unpacked
+epubtrans clean /path/to/unpacked
  ```
 
 3. Mark the content that needs to be translated.
 
  ```bash
- go run main.go mark /path/to/unpacked
+epubtrans mark /path/to/unpacked
  ```
 
 At this point, you will see a folder with the name of the epub, containing the html files of the epub. The content of
@@ -52,7 +61,7 @@ these html files has been marked.
 4. Translate the marked content.
 
  ```bash
-go run main.go translate /path/to/unpacked
+epubtrans translate /path/to/unpacked
  ```
 
 This process will take some time. At the end of the process, you will have html files with the translated content.
@@ -60,7 +69,7 @@ This process will take some time. At the end of the process, you will have html 
 5. Package it into a bilingual book.
 
  ```bash
- go run main.go pack /path/to/unpacked
+epubtrans pack /path/to/unpacked
  ```
 
 At this point, you will have a repacked epub file with bilingual content.
