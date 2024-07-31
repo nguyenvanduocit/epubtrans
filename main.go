@@ -1,8 +1,8 @@
 package main
 
 import (
-	"epubtrans/cmd"
 	"fmt"
+	"github.com/nguyenvanduocit/epubtrans/cmd"
 	"os"
 )
 

@@ -1,8 +1,8 @@
 package clean
 
 import (
-	"epubtrans/pkg/loader"
 	"fmt"
+	"github.com/nguyenvanduocit/epubtrans/pkg/loader"
 	"io"
 	"os"
 	"path"

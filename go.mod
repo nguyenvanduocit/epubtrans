@@ -1,4 +1,4 @@
-module epubtrans
+module github.com/nguyenvanduocit/epubtrans
 
 go 1.22.4
 

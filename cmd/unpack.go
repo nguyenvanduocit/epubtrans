@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"archive/zip"
-	"epubtrans/pkg/util"
 	"fmt"
+	"github.com/nguyenvanduocit/epubtrans/pkg/util"
 	"github.com/spf13/cobra"
 	"io"
 	"os"

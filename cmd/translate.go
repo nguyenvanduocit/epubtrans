@@ -2,12 +2,12 @@ package cmd
 
 import (
 	"context"
-	"epubtrans/pkg/loader"
-	"epubtrans/pkg/translator"
-	"epubtrans/pkg/util"
 	"errors"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
+	"github.com/nguyenvanduocit/epubtrans/pkg/loader"
+	"github.com/nguyenvanduocit/epubtrans/pkg/translator"
+	"github.com/nguyenvanduocit/epubtrans/pkg/util"
 	"github.com/spf13/cobra"
 	"golang.org/x/time/rate"
 	"os"

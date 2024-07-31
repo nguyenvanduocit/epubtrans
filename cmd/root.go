@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"epubtrans/cmd/clean"
+	"github.com/nguyenvanduocit/epubtrans/cmd/clean"
 	"github.com/spf13/cobra"
 )
 

@@ -13,8 +13,8 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/net/html"
 
-	"epubtrans/pkg/loader"
-	"epubtrans/pkg/util"
+	"github.com/nguyenvanduocit/epubtrans/pkg/loader"
+	"github.com/nguyenvanduocit/epubtrans/pkg/util"
 )
 
 var blacklist = []string{
