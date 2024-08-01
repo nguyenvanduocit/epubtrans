@@ -2,6 +2,8 @@
 
 This project aims to quickly translate epub books into Vietnamese. It packages the result as a bilingual book.
 
+You may want to watch the [tutorial video - Vietnamese](https://youtu.be/9MspqDLPaxQ).
+
 ## Acceptance Criteria
 
 - [x] Only need to create a rough translation.
@@ -74,12 +76,24 @@ epubtrans pack /path/to/unpacked
 
 At this point, you will have a repacked epub file with bilingual content.
 
+## Snippets
+
 ### How to hide all English content?
 
-You need to add the following CSS to every html file:
+You need to add the following CSS to every html file or css file:
 
 ```css
 [data-content-id] {
     display: none !important;
+}
+```
+
+### How to make original content less visible?
+
+You need to add the following CSS to every html file or css file:
+
+```css
+[data-content-id] {
+    opacity: 0.8;
 }
 ```
