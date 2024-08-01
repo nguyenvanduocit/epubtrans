@@ -9,6 +9,7 @@ import (
 	"github.com/nguyenvanduocit/epubtrans/pkg/translator"
 	"github.com/nguyenvanduocit/epubtrans/pkg/util"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"golang.org/x/time/rate"
 	"os"
 	"os/signal"
@@ -22,6 +23,14 @@ var Translate = &cobra.Command{
 	Short: "Translate the content of an unpacked EPUB",
 	Args:  cobra.ExactArgs(1),
 	RunE:  runTranslate,
+}
+
+func init() {
+	Translate.Flags().String("source", "English", "source language")
+	Translate.Flags().String("target", "Vietnamese", "target language")
+
+	viper.BindPFlag("source", Translate.Flags().Lookup("source"))
+	viper.BindPFlag("target", Translate.Flags().Lookup("target"))
 }
 
 func runTranslate(cmd *cobra.Command, args []string) error {
@@ -166,7 +175,7 @@ func translateElement(ctx context.Context, i int, contentEl *goquery.Selection, 
 		fmt.Printf("Error getting translator: %v\n", err)
 		return false
 	}
-	translatedContent, err := anthropicTranslator.Translate(ctx, htmlToTranslate, "English", "Vietnamese")
+	translatedContent, err := anthropicTranslator.Translate(ctx, htmlToTranslate, viper.GetString("source"), viper.GetString("target"))
 	if err != nil {
 		fmt.Printf("Translation error: %v\n", err)
 
