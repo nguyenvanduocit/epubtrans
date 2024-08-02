@@ -18,4 +18,5 @@ func init() {
 	Root.AddCommand(Mark)
 	Root.AddCommand(Pack)
 	Root.AddCommand(Translate)
+	Root.AddCommand(Serve)
 }

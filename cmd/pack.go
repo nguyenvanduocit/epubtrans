@@ -10,23 +10,32 @@ import (
 )
 
 var Pack = &cobra.Command{
-	Use:   "pack",
+	Use:   "pack [directory]",
 	Short: "Zip files in a directory",
 	Long:  "Zip files in a directory and create a new zip file",
 	Args:  cobra.ExactArgs(1),
 	RunE:  runPack,
 }
 
-func runPack(cmd *cobra.Command, args []string) error {
-	srcDir := args[0]
-	return packFiles(srcDir)
+func init() {
+	Pack.Flags().StringP("output", "o", "", "output file path")
 }
 
-func packFiles(srcDir string) error {
-	repackPath := getUniqueFilename(srcDir + "-repack.epub")
-	fmt.Printf("Creating zip file: %s\n", repackPath)
+func runPack(cmd *cobra.Command, args []string) error {
+	srcDir := args[0]
+	outputPath, _ := cmd.Flags().GetString("output")
+	return packFiles(srcDir, outputPath)
+}
 
-	newZipFile, err := os.Create(repackPath)
+func packFiles(srcDir string, outputPath string) error {
+	if outputPath == "" {
+		outputPath = getUniqueFilename(srcDir + "-repack.epub")
+	} else {
+		outputPath = getUniqueFilename(outputPath)
+	}
+	fmt.Printf("Creating zip file: %s\n", outputPath)
+
+	newZipFile, err := os.Create(outputPath)
 	if err != nil {
 		return fmt.Errorf("failed to create zip file: %w", err)
 	}
@@ -89,7 +98,7 @@ func packFiles(srcDir string) error {
 	fmt.Printf("\nZip creation complete:\n")
 	fmt.Printf("Total files: %d\n", fileCount)
 	fmt.Printf("Total size: %.2f MB\n", float64(totalSize)/(1024*1024))
-	fmt.Printf("Output file: %s\n", repackPath)
+	fmt.Printf("Output file: %s\n", outputPath)
 
 	return nil
 }

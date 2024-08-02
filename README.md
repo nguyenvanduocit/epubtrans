@@ -28,6 +28,7 @@ translated content. We divide it into 3 commands.
 3. `clean` to clean up erroneous content.
 4. `translate` to translate the marked content.
 5. `pack` to package it into a bilingual book.
+6. `serve` to serve the whole book as a static webserver.
 
 ### Step-by-step
 
@@ -75,6 +76,23 @@ epubtrans pack /path/to/unpacked
  ```
 
 At this point, you will have a repacked epub file with bilingual content.
+
+## How to serve the book on web?
+
+You can run the command `serve`. then the console will show you the address to access the book.
+
+There are some important endpoints:
+
+- http://localhost:8080/api/info
+- http://localhost:8080/toc.html
+- http://localhost:3000/api/manifest
+- http://localhost:3000/api/spine
+
+### How to edit the translation?
+
+When accessing the book via `serve` command, you can see that the translated content is editable. After edit and leave the mouse, the content will be saved automatically.
+
+After that, you just need to run the `pack` command to package the book again.
 
 ## Snippets
 

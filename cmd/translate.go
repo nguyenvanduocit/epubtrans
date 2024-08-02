@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/signal"
 	"path"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -190,13 +191,19 @@ func translateElement(ctx context.Context, i int, contentEl *goquery.Selection, 
 		return false
 	}
 
-	if len(translatedContent) > len(htmlToTranslate)*4 {
+	if countWords(translatedContent) > countWords(htmlToTranslate)*3 {
 		fmt.Printf("\t\tTranslation is not good: %s\n", contentID)
 		fmt.Printf("\t\tTranslation: %s\n", translatedContent)
 		return false
 	}
 
-	if err = manipulateHTML(contentEl, htmlToTranslate, translatedContent); err != nil {
+	if isHtmlDifferent(htmlToTranslate, translatedContent) {
+		fmt.Printf("\t\tTranslation struct is not good: %s\n", contentID)
+		fmt.Printf("\t\tTranslation: %s\n", translatedContent)
+		return false
+	}
+
+	if err = manipulateHTML(contentEl, viper.GetString("target"), translatedContent); err != nil {
 		fmt.Printf("HTML manipulation error: %v\n", err)
 		return false
 	}
@@ -206,8 +213,66 @@ func translateElement(ctx context.Context, i int, contentEl *goquery.Selection, 
 	return true
 }
 
-func manipulateHTML(doc *goquery.Selection, htmlContent, translatedContent string) error {
-	translationID, err := generateContentID([]byte(translatedContent))
+func isHtmlDifferent(html1, html2 string) bool {
+	doc1, err := goquery.NewDocumentFromReader(strings.NewReader(html1))
+	if err != nil {
+		return false
+	}
+
+	doc2, err := goquery.NewDocumentFromReader(strings.NewReader(html2))
+	if err != nil {
+		return false
+	}
+
+	// loop to compare
+	return compareNodes(doc1.Contents(), doc2.Contents())
+}
+
+func compareNodes(nodes1, nodes2 *goquery.Selection) bool {
+	if nodes1.Length() != nodes2.Length() {
+		return true
+	}
+
+	for i := range nodes1.Nodes {
+		node1 := nodes1.Eq(i)
+		node2 := nodes2.Eq(i)
+
+		if node1.Nodes[0].Type != node2.Nodes[0].Type {
+			return true
+		}
+
+		if node1.Nodes[0].Type == 1 {
+			if node1.Nodes[0].Data != node2.Nodes[0].Data {
+				return true
+			}
+
+			if node1.Nodes[0].Attr != nil && node2.Nodes[0].Attr != nil {
+				if len(node1.Nodes[0].Attr) != len(node2.Nodes[0].Attr) {
+					return true
+				}
+
+				for j := range node1.Nodes[0].Attr {
+					if node1.Nodes[0].Attr[j].Key != node2.Nodes[0].Attr[j].Key || node1.Nodes[0].Attr[j].Val != node2.Nodes[0].Attr[j].Val {
+						return true
+					}
+				}
+			}
+
+			if compareNodes(node1.Contents(), node2.Contents()) {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+func countWords(s string) int {
+	return len(strings.Fields(s))
+}
+
+func manipulateHTML(doc *goquery.Selection, targetLang, translatedContent string) error {
+	translationID, err := generateContentID([]byte(translatedContent + targetLang))
 	if err != nil {
 		return err
 	}
@@ -216,6 +281,8 @@ func manipulateHTML(doc *goquery.Selection, htmlContent, translatedContent strin
 	translatedElement.RemoveAttr(util.ContentIdKey)
 	translatedElement.SetHtml(translatedContent)
 	translatedElement.SetAttr(util.TranslationIdKey, translationID)
+	translatedElement.SetAttr(util.TranslationLangKey, targetLang)
+
 	doc.SetAttr(util.TranslationByIdKey, translationID)
 	doc.AfterSelection(translatedElement)
 
