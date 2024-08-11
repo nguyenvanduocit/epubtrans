@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/nguyenvanduocit/epubtrans/pkg/loader"
+	"github.com/nguyenvanduocit/epubtrans/pkg/processor"
 	"github.com/nguyenvanduocit/epubtrans/pkg/translator"
 	"github.com/nguyenvanduocit/epubtrans/pkg/util"
 	"github.com/spf13/cobra"
@@ -14,7 +15,7 @@ import (
 	"os"
 	"os/signal"
 	"path"
-	"regexp"
+	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -30,20 +31,9 @@ var Translate = &cobra.Command{
 func init() {
 	Translate.Flags().String("source", "English", "source language")
 	Translate.Flags().String("target", "Vietnamese", "target language")
-
+	Translate.Flags().Int("workers", runtime.NumCPU(), "Number of worker goroutines")
 	viper.BindPFlag("source", Translate.Flags().Lookup("source"))
 	viper.BindPFlag("target", Translate.Flags().Lookup("target"))
-}
-
-var excludeRegex = regexp.MustCompile(`(?i)(preface|introduction|foreword|prologue|toc|table\s*of\s*contents|title|cover|copyright|colophon|dedication|acknowledgements?|about\s*the\s*author|bibliography|glossary|index|appendix|notes?|footnotes?|endnotes?|references|epub-meta|metadata|nav|ncx|opf|front\s*matter|back\s*matter|halftitle|frontispiece|epigraph|list\s*of\s*(figures|tables|illustrations)|copyright\s*page|series\s*page|reviews|praise\s*for|also\s*by\s*the\s*author|author\s*bio|publication\s*info|imprint|credits|permissions|disclaimer|errata|synopsis|summary)`)
-
-func shouldExcludeFile(fileName string) bool {
-	// Check if the file name matches the exclude regex
-	if excludeRegex.MatchString(fileName) {
-		return true
-	}
-
-	return false
 }
 
 func runTranslate(cmd *cobra.Command, args []string) error {
@@ -89,7 +79,7 @@ func translateEpub(ctx context.Context, unzipPath string) error {
 				continue
 			}
 
-			if shouldExcludeFile(item.Href) {
+			if processor.ShouldExcludeFile(item.Href) {
 				fmt.Printf("Skipping file: %s (excluded from translation)\n", item.Href)
 				continue
 			}

@@ -1,19 +1,19 @@
 package cmd
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"os"
-	"path/filepath"
-	"runtime"
-	"strings"
-	"sync"
-
+	"github.com/nguyenvanduocit/epubtrans/pkg/processor"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/html"
+	"os"
+	"os/signal"
+	"runtime"
+	"strings"
+	"syscall"
 
-	"github.com/nguyenvanduocit/epubtrans/pkg/loader"
 	"github.com/nguyenvanduocit/epubtrans/pkg/util"
 )
 
@@ -33,92 +33,38 @@ var Mark = &cobra.Command{
 	Use:   "mark [epub_path]",
 	Short: "Mark content in EPUB files",
 	Args:  cobra.ExactArgs(1),
-	RunE:  markContent,
+	RunE:  runMark,
 }
 
 func init() {
 	Mark.Flags().Int("workers", runtime.NumCPU(), "Number of worker goroutines")
 }
 
-func markContent(cmd *cobra.Command, args []string) error {
-	epubPath := args[0]
+func runMark(cmd *cobra.Command, args []string) error {
+	unzipPath := args[0]
+	ctx, cancel := context.WithCancel(cmd.Context())
+	defer cancel()
 
-	if err := validateEPUBPath(epubPath); err != nil {
+	// Set up signal handling
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		<-sigChan
+		fmt.Println("Interrupt received, initiating graceful shutdown...")
+		cancel()
+	}()
+
+	if err := util.ValidateEpubPath(unzipPath); err != nil {
 		return err
 	}
 
-	container, err := loader.ParseContainer(epubPath)
-	if err != nil {
-		return fmt.Errorf("parsing container: %w", err)
-	}
+	workers, _ := cmd.Flags().GetInt("workers")
 
-	containerFileAbsPath := filepath.Join(epubPath, container.Rootfile.FullPath)
-	pkg, err := loader.ParsePackage(containerFileAbsPath)
-	if err != nil {
-		return fmt.Errorf("parsing package: %w", err)
-	}
-
-	contentDir := filepath.Dir(containerFileAbsPath)
-	return processPackageItems(pkg, contentDir)
+	return processor.ProcessEpub(ctx, unzipPath, workers, markContentInFile)
 }
 
-func validateEPUBPath(epubPath string) error {
-	fi, err := os.Stat(epubPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return fmt.Errorf("epub path %s does not exist", epubPath)
-		}
-		return fmt.Errorf("checking epub path: %w", err)
-	}
-	if !fi.IsDir() {
-		return fmt.Errorf("epub path %s is not a directory", epubPath)
-	}
-	return nil
-}
-
-func processPackageItems(pkg *loader.Package, contentDir string) error {
-	jobs := make(chan string, len(pkg.Manifest.Items))
-	results := make(chan error, len(pkg.Manifest.Items))
-
-	workerCount := 5
-	var wg sync.WaitGroup
-	for w := 1; w <= workerCount; w++ {
-		wg.Add(1)
-		go worker(jobs, results, &wg)
-	}
-
-	for _, item := range pkg.Manifest.Items {
-		if item.MediaType != "application/xhtml+xml" {
-			continue
-		}
-		filePath := filepath.Join(contentDir, item.Href)
-		jobs <- filePath
-	}
-	close(jobs)
-
-	go func() {
-		wg.Wait()
-		close(results)
-	}()
-
-	for err := range results {
-		if err != nil {
-			fmt.Printf("Error processing file: %v\n", err)
-		}
-	}
-
-	return nil
-}
-
-func worker(jobs <-chan string, results chan<- error, wg *sync.WaitGroup) {
-	defer wg.Done()
-	for filePath := range jobs {
-		err := markContentInFile(filePath)
-		results <- err
-	}
-}
-
-func markContentInFile(filePath string) error {
+func markContentInFile(ctx context.Context, filePath string) error {
 	f, err := os.Open(filePath)
 	if err != nil {
 		return fmt.Errorf("opening file %s: %w", filePath, err)
@@ -144,7 +90,6 @@ func markContentInFile(filePath string) error {
 
 	return nil
 }
-
 func processNode(n *html.Node) {
 	if n.Type == html.ElementNode {
 		// Skip if already marked
