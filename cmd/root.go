@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"github.com/nguyenvanduocit/epubtrans/cmd/clean"
 	"github.com/spf13/cobra"
 )
 
@@ -13,7 +12,7 @@ var Root = &cobra.Command{
 }
 
 func init() {
-	Root.AddCommand(clean.Clean)
+	Root.AddCommand(Clean)
 	Root.AddCommand(Unpack)
 	Root.AddCommand(Mark)
 	Root.AddCommand(Pack)

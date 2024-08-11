@@ -56,6 +56,8 @@ func ProcessEpub(ctx context.Context, unzipPath string, workers int, processor E
 			continue
 		}
 
+		fmt.Println("Processing file:", item.Href)
+
 		filePath := filepath.Join(contentDir, item.Href)
 		jobs <- filePath
 	}

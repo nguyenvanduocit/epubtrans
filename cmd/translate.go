@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
-	"github.com/nguyenvanduocit/epubtrans/pkg/loader"
 	"github.com/nguyenvanduocit/epubtrans/pkg/processor"
 	"github.com/nguyenvanduocit/epubtrans/pkg/translator"
 	"github.com/nguyenvanduocit/epubtrans/pkg/util"
@@ -13,8 +12,6 @@ import (
 	"golang.org/x/time/rate"
 	"os"
 	"os/signal"
-	"path"
-	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -36,9 +33,8 @@ var Translate = &cobra.Command{
 func init() {
 	Translate.Flags().StringVar(&sourceLanguage, "source", "English", "source language")
 	Translate.Flags().StringVar(&targetLanguage, "target", "Vietnamese", "target language")
-	Translate.Flags().IntVar(&numWorkers, "workers", runtime.NumCPU(), "Number of worker goroutines")
+	Translate.Flags().IntVar(&numWorkers, "workers", 1, "Number of worker goroutines")
 }
-
 func runTranslate(cmd *cobra.Command, args []string) error {
 	unzipPath := args[0]
 	ctx, cancel := context.WithCancel(cmd.Context())
@@ -54,49 +50,15 @@ func runTranslate(cmd *cobra.Command, args []string) error {
 		cancel()
 	}()
 
-	return translateEpub(ctx, unzipPath)
-}
-
-func translateEpub(ctx context.Context, unzipPath string) error {
-	container, err := loader.ParseContainer(unzipPath)
-	if err != nil {
-		return fmt.Errorf("failed to parse container: %w", err)
+	if err := util.ValidateEpubPath(unzipPath); err != nil {
+		return err
 	}
 
-	containerFileAbsPath := path.Join(unzipPath, container.Rootfile.FullPath)
-	pkg, err := loader.ParsePackage(containerFileAbsPath)
-	if err != nil {
-		return fmt.Errorf("failed to parse package: %w", err)
-	}
-
-	contentDir := path.Dir(containerFileAbsPath)
 	limiter := rate.NewLimiter(rate.Every(time.Minute/50), 1)
 
-	for _, item := range pkg.Manifest.Items {
-		select {
-		case <-ctx.Done():
-			fmt.Println("Context cancelled, writing remaining content...")
-			return nil
-		default:
-			if item.MediaType != "application/xhtml+xml" {
-				continue
-			}
-
-			if processor.ShouldExcludeFile(item.Href) {
-				fmt.Printf("Skipping file: %s (excluded from translation)\n", item.Href)
-				continue
-			}
-
-			filePath := path.Join(contentDir, item.Href)
-			fmt.Printf("Processing file: %s\n", item.Href)
-
-			if err := translateFile(ctx, filePath, limiter); err != nil {
-				fmt.Printf("Error processing %s: %v\n", item.Href, err)
-			}
-		}
-	}
-
-	return nil
+	return processor.ProcessEpub(ctx, unzipPath, numWorkers, func(ctx context.Context, filePath string) error {
+		return translateFile(ctx, filePath, limiter)
+	})
 }
 
 func translateFile(ctx context.Context, filePath string, limiter *rate.Limiter) error {
@@ -115,35 +77,22 @@ func translateFile(ctx context.Context, filePath string, limiter *rate.Limiter) 
 	}
 
 	var modified bool
-	done := make(chan struct{})
-
-	go func() {
-		needToBeTranslateEls.Each(func(i int, contentEl *goquery.Selection) {
+	needToBeTranslateEls.Each(func(i int, contentEl *goquery.Selection) {
+		select {
+		case <-ctx.Done():
+			return
+		default:
 			if translated := translateElement(ctx, i, contentEl, needToBeTranslateEls.Length(), limiter); translated {
 				modified = true
 			}
-
-			if modified {
-				if err := writeContentToFile(filePath, doc); err != nil {
-					fmt.Printf("Error writing to file: %v\n", err)
-				}
-				modified = false
-			}
-		})
-		close(done)
-	}()
-
-	select {
-	case <-ctx.Done():
-		if modified {
-			if err := writeContentToFile(filePath, doc); err != nil {
-				fmt.Printf("Error writing to file: %v\n", err)
-			}
 		}
-		return ctx.Err()
-	case <-done:
-		return nil
+	})
+
+	if modified {
+		return writeContentToFile(filePath, doc)
 	}
+
+	return nil
 }
 
 func openAndReadFile(filePath string) (*goquery.Document, error) {
