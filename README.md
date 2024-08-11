@@ -69,7 +69,15 @@ epubtrans translate /path/to/unpacked
 
 This process will take some time. At the end of the process, you will have html files with the translated content.
 
-5. Package it into a bilingual book.
+5. Apply style to the translated content.
+
+The step is optional. Only when you want to apply some style to the translated content.
+
+ ```bash
+epubtrans styling /path/to/unpacked --hide "source|target"
+ ```
+
+6. Package it into a bilingual book.
 
  ```bash
 epubtrans pack /path/to/unpacked

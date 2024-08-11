@@ -110,7 +110,7 @@ func stylingFile(ctx context.Context, filePath string, styleOptions StylingOptio
 	if styleOptions.Hide == "source" {
 		styleContent += `[` + util.ContentIdKey + `] { display: none !important; }`
 	} else if styleOptions.Hide == "target" {
-		styleContent += `[` + util.TranslationIdKey + `] { display: none !important; }`
+		styleContent = `[` + util.TranslationIdKey + `] { display: none !important; }`
 	}
 
 	// Prepare the style tag to inject
