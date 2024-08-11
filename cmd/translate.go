@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/signal"
 	"path"
+	"regexp"
 	"strings"
 	"syscall"
 	"time"
@@ -32,6 +33,17 @@ func init() {
 
 	viper.BindPFlag("source", Translate.Flags().Lookup("source"))
 	viper.BindPFlag("target", Translate.Flags().Lookup("target"))
+}
+
+var excludeRegex = regexp.MustCompile(`(?i)(preface|introduction|foreword|prologue|toc|table\s*of\s*contents|title|cover|copyright|colophon|dedication|acknowledgements?|about\s*the\s*author|bibliography|glossary|index|appendix|notes?|footnotes?|endnotes?|references|epub-meta|metadata|nav|ncx|opf|front\s*matter|back\s*matter|halftitle|frontispiece|epigraph|list\s*of\s*(figures|tables|illustrations)|copyright\s*page|series\s*page|reviews|praise\s*for|also\s*by\s*the\s*author|author\s*bio|publication\s*info|imprint|credits|permissions|disclaimer|errata|synopsis|summary)`)
+
+func shouldExcludeFile(fileName string) bool {
+	// Check if the file name matches the exclude regex
+	if excludeRegex.MatchString(fileName) {
+		return true
+	}
+
+	return false
 }
 
 func runTranslate(cmd *cobra.Command, args []string) error {
@@ -77,10 +89,15 @@ func translateEpub(ctx context.Context, unzipPath string) error {
 				continue
 			}
 
+			if shouldExcludeFile(item.Href) {
+				fmt.Printf("Skipping file: %s (excluded from translation)\n", item.Href)
+				continue
+			}
+
 			filePath := path.Join(contentDir, item.Href)
 			fmt.Printf("Processing file: %s\n", item.Href)
 
-			if err := processFile(ctx, filePath, limiter); err != nil {
+			if err := translateFile(ctx, filePath, limiter); err != nil {
 				fmt.Printf("Error processing %s: %v\n", item.Href, err)
 			}
 		}
@@ -89,7 +106,7 @@ func translateEpub(ctx context.Context, unzipPath string) error {
 	return nil
 }
 
-func processFile(ctx context.Context, filePath string, limiter *rate.Limiter) error {
+func translateFile(ctx context.Context, filePath string, limiter *rate.Limiter) error {
 	doc, err := openAndReadFile(filePath)
 	if err != nil {
 		return err

@@ -8,9 +8,11 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/nguyenvanduocit/epubtrans/pkg/loader"
 	"github.com/spf13/cobra"
+	"io"
 	"io/ioutil"
 	"log/slog"
 	"net"
+	"net/http"
 	"os"
 	"path"
 	"path/filepath"
@@ -96,6 +98,13 @@ func generateTOCHTML(navPoints []NavPoint, level int) string {
 	html.WriteString("</ul>")
 	return html.String()
 }
+
+const (
+	githubRawContent = "https://raw.githubusercontent.com"
+	userRepo         = "nguyenvanduocit/epubtrans"
+	branch           = "main"
+)
+
 func runServe(cmd *cobra.Command, args []string) error {
 	unpackedEpubPath := args[0]
 
@@ -109,7 +118,31 @@ func runServe(cmd *cobra.Command, args []string) error {
 	})
 
 	var scriptToInject = []byte(`<script src="/assets/app.js"></script><link rel="stylesheet" href="/assets/app.css">`)
-	app.Static("/assets", "./assets")
+
+	// Proxy route for assets
+	app.Get("/assets/:filename", func(c *fiber.Ctx) error {
+		filename := c.Params("filename")
+		url := fmt.Sprintf("%s/%s/%s/assets/%s", githubRawContent, userRepo, branch, filename)
+
+		// Make request to GitHub
+		resp, err := http.Get(url)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).SendString("Error fetching file")
+		}
+		defer resp.Body.Close()
+
+		// Set content type based on file extension
+		if strings.HasSuffix(filename, ".css") {
+			c.Set("Content-Type", "text/css")
+		} else if strings.HasSuffix(filename, ".js") {
+			c.Set("Content-Type", "application/javascript")
+		}
+
+		//send the body to the client
+		body, _ := io.ReadAll(resp.Body)
+		return c.Send(body)
+	})
+
 	container, err := loader.ParseContainer(unpackedEpubPath)
 	if err != nil {
 		return err
@@ -123,11 +156,18 @@ func runServe(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).SendString(fmt.Sprintf("Error parsing package: %v", err))
 		}
-		tocPath := path.Join(contentDirPath, pkg.Spine.Toc)
+
+		tocItem := pkg.Manifest.GetItemByID(pkg.Spine.Toc)
+
+		if tocItem == nil {
+			return c.Status(fiber.StatusInternalServerError).SendString("Error getting toc item")
+		}
+
+		tocPath := path.Join(contentDirPath, tocItem.Href)
 		// Read the toc.ncx file
 		tocContent, err := ioutil.ReadFile(tocPath)
 		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).SendString("Error reading toc.ncx file")
+			return c.Status(fiber.StatusInternalServerError).SendString("Error reading toc.ncx file: " + tocPath)
 		}
 
 		var ncx NCX
@@ -282,8 +322,6 @@ func runServe(cmd *cobra.Command, args []string) error {
 	slog.Info("- http://localhost:" + port + "/toc.html")
 	slog.Info("- http://localhost:" + port + "/api/manifest")
 	slog.Info("- http://localhost:" + port + "/api/spine")
-
-	slog.Info("Listening on port", slog.String("port", port))
 
 	return app.Listen(net.JoinHostPort("", port))
 }

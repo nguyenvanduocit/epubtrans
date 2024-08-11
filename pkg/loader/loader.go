@@ -42,6 +42,16 @@ type Manifest struct {
 	Items []Item `xml:"item" json:"items"`
 }
 
+// GetItemByID returns the item with the given ID
+func (m Manifest) GetItemByID(id string) *Item {
+	for _, item := range m.Items {
+		if item.ID == id {
+			return &item
+		}
+	}
+	return nil
+}
+
 type Item struct {
 	Href       string `xml:"href,attr" json:"href"`
 	ID         string `xml:"id,attr" json:"id"`

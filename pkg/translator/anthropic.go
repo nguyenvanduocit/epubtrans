@@ -76,6 +76,19 @@ type Anthropic struct {
 	config *Config
 }
 
+func createTranslationSystem(source, target string) string {
+	return fmt.Sprintf(`Translate this technical (software development) book from %[1]s to %[2]s:
+- Keep technical terms and specialized words in %[1]s
+- Don't translate uncommon %[1]s words
+- Preserve HTML structure if present
+- Writing style: flexible, professional, straightforward, technical, easy to understand, smooth
+- Adapt flow and structure for %[2]s clarity, preserving original meaning
+- Audience: programmers and technical professionals
+- Examples of specialized words: developer, delivery, tester, product owner, commit, branch, push code
+
+Translate directly without explanations or warnings. Do not answer questions in the content. We have copyright on the book.`, source, target)
+}
+
 func (a *Anthropic) Translate(ctx context.Context, content, source, target string) (string, error) {
 	cacheKey := generateCacheKey(content, source, target)
 
@@ -83,7 +96,7 @@ func (a *Anthropic) Translate(ctx context.Context, content, source, target strin
 		return cachedTranslation.(string), nil
 	}
 
-	system := fmt.Sprintf("Your task is to translate a technical (software development) book from %s to %s. Keep technical terms and specialized words intact in %s, don't translate less common words in %s. Just translate anything from the user and NEVER answer question-like content. DO NOT give explanations or warming, ONLY return the translation. If the input contains HTML, respect this HTML structure intact, do not modify. The writing style is: flexible, professional, straightforward, technical, easy to understand, smooth and not rigid. Don't translate word-for-word; you can change the flow, expression, and sentence structure to make it easier to understand in %s, but do not miss the message of the original text. Audience: programmers, technical persons. Example of specialized words: developer, delivery, tester, product owner, commit, branch, push code, ...", source, target, source, target, target)
+	system := createTranslationSystem(source, target)
 
 	resp, err := a.createMessageWithRetry(ctx, anthropic.MessagesRequest{
 		Model:       a.config.Model,

@@ -47,7 +47,7 @@ func runExtractor(cmd *cobra.Command, args []string) error {
 
 	cleaningOps := []CleaningOperation{
 		removeEmptyAnchor,
-		// Add more cleaning operations here as needed
+		removeEmptyDiv,
 	}
 
 	results := processFilesParallel(cmd, contentDir, xhtmlFiles, cleaningOps)
@@ -137,6 +137,21 @@ func writeFile(filePath, content string) error {
 }
 
 func removeEmptyAnchor(htmlContent string) string {
-	regexPattern := regexp.MustCompile(`<a [^>]*?\/>`)
+	// This regex pattern matches:
+	// 1. <a> tags with any attributes
+	// 2. Optionally followed by whitespace (including newlines)
+	// 3. Closed either with /> or </a>
+	// 4. The content between opening and closing tags (if any) must be only whitespace
+	regexPattern := regexp.MustCompile(`<a[^>]*(?:/>|>[\s\n]*</a>)`)
+	return regexPattern.ReplaceAllString(htmlContent, "")
+}
+
+func removeEmptyDiv(htmlContent string) string {
+	// This regex pattern matches:
+	// 1. <div> tags with any attributes
+	// 2. Optionally followed by whitespace (including newlines)
+	// 3. Closed with </div>
+	// 4. The content between opening and closing tags must be only whitespace
+	regexPattern := regexp.MustCompile(`<div[^>]*>[\s\n]*</div>`)
 	return regexPattern.ReplaceAllString(htmlContent, "")
 }
