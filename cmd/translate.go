@@ -10,7 +10,6 @@ import (
 	"github.com/nguyenvanduocit/epubtrans/pkg/translator"
 	"github.com/nguyenvanduocit/epubtrans/pkg/util"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"golang.org/x/time/rate"
 	"os"
 	"os/signal"
@@ -21,6 +20,12 @@ import (
 	"time"
 )
 
+var (
+	sourceLanguage string
+	targetLanguage string
+	numWorkers     int
+)
+
 var Translate = &cobra.Command{
 	Use:   "translate [unpackedEpubPath]",
 	Short: "Translate the content of an unpacked EPUB",
@@ -29,11 +34,9 @@ var Translate = &cobra.Command{
 }
 
 func init() {
-	Translate.Flags().String("source", "English", "source language")
-	Translate.Flags().String("target", "Vietnamese", "target language")
-	Translate.Flags().Int("workers", runtime.NumCPU(), "Number of worker goroutines")
-	viper.BindPFlag("source", Translate.Flags().Lookup("source"))
-	viper.BindPFlag("target", Translate.Flags().Lookup("target"))
+	Translate.Flags().StringVar(&sourceLanguage, "source", "English", "source language")
+	Translate.Flags().StringVar(&targetLanguage, "target", "Vietnamese", "target language")
+	Translate.Flags().IntVar(&numWorkers, "workers", runtime.NumCPU(), "Number of worker goroutines")
 }
 
 func runTranslate(cmd *cobra.Command, args []string) error {
@@ -183,7 +186,7 @@ func translateElement(ctx context.Context, i int, contentEl *goquery.Selection, 
 		fmt.Printf("Error getting translator: %v\n", err)
 		return false
 	}
-	translatedContent, err := anthropicTranslator.Translate(ctx, htmlToTranslate, viper.GetString("source"), viper.GetString("target"))
+	translatedContent, err := anthropicTranslator.Translate(ctx, htmlToTranslate, sourceLanguage, targetLanguage)
 	if err != nil {
 		fmt.Printf("Translation error: %v\n", err)
 
@@ -210,7 +213,7 @@ func translateElement(ctx context.Context, i int, contentEl *goquery.Selection, 
 		return false
 	}
 
-	if err = manipulateHTML(contentEl, viper.GetString("target"), translatedContent); err != nil {
+	if err = manipulateHTML(contentEl, targetLanguage, translatedContent); err != nil {
 		fmt.Printf("HTML manipulation error: %v\n", err)
 		return false
 	}
