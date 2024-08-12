@@ -41,7 +41,11 @@ func runCleaner(cmd *cobra.Command, args []string) error {
 		removeEmptyDiv,
 	}
 
-	return processor.ProcessEpub(ctx, unzipPath, workers, func(ctx context.Context, filePath string) error {
+	return processor.ProcessEpub(ctx, unzipPath, processor.Config{
+		Workers:      workers,
+		JobBuffer:    10,
+		ResultBuffer: 10,
+	}, func(ctx context.Context, filePath string) error {
 		return cleanFile(ctx, filePath, cleaningOps)
 	})
 }

@@ -70,7 +70,11 @@ func runStyling(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	return processor.ProcessEpub(ctx, unzipPath, styleOptions.Workers, func(ctx context.Context, filePath string) error {
+	return processor.ProcessEpub(ctx, unzipPath, processor.Config{
+		Workers:      workers,
+		JobBuffer:    10,
+		ResultBuffer: 10,
+	}, func(ctx context.Context, filePath string) error {
 		return stylingFile(ctx, filePath, styleOptions)
 	})
 }

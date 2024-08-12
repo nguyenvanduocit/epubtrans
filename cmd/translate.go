@@ -56,7 +56,11 @@ func runTranslate(cmd *cobra.Command, args []string) error {
 
 	limiter := rate.NewLimiter(rate.Every(time.Minute/50), 1)
 
-	return processor.ProcessEpub(ctx, unzipPath, numWorkers, func(ctx context.Context, filePath string) error {
+	return processor.ProcessEpub(ctx, unzipPath, processor.Config{
+		Workers:      numWorkers,
+		JobBuffer:    1,
+		ResultBuffer: 10,
+	}, func(ctx context.Context, filePath string) error {
 		return translateFile(ctx, filePath, limiter)
 	})
 }

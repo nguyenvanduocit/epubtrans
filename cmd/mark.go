@@ -61,7 +61,11 @@ func runMark(cmd *cobra.Command, args []string) error {
 
 	workers, _ := cmd.Flags().GetInt("workers")
 
-	return processor.ProcessEpub(ctx, unzipPath, workers, markContentInFile)
+	return processor.ProcessEpub(ctx, unzipPath, processor.Config{
+		Workers:      workers,
+		JobBuffer:    10,
+		ResultBuffer: 10,
+	}, markContentInFile)
 }
 
 func markContentInFile(ctx context.Context, filePath string) error {
