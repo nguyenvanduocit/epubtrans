@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.0](https://github.com/nguyenvanduocit/epubtrans/compare/v2.1.0...v2.2.0) (2024-08-12)
+
+
+### Features
+
+* remove numWorkers flag from translate command ([d4012db](https://github.com/nguyenvanduocit/epubtrans/commit/d4012dbc0be804cfdcb0e0710030cb15af0d2a15))
+
 ## [2.1.0](https://github.com/nguyenvanduocit/epubtrans/compare/v2.0.0...v2.1.0) (2024-08-12)
 
 
