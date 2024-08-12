@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.0](https://github.com/nguyenvanduocit/epubtrans/compare/v1.6.0...v2.0.0) (2024-08-12)
+
+
+### ⚠ BREAKING CHANGES
+
+* fix unpack command
+
+### Bug Fixes
+
+* fix unpack command ([8a30cf7](https://github.com/nguyenvanduocit/epubtrans/commit/8a30cf72a46b19314e26093ae8c8f4fc77ed11ce))
+
 ## [1.6.0](https://github.com/nguyenvanduocit/epubtrans/compare/v1.5.0...v1.6.0) (2024-08-12)
 
 
