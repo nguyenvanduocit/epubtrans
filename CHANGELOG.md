@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.1.0](https://github.com/nguyenvanduocit/epubtrans/compare/v1.0.0...v1.1.0) (2024-08-12)
+
+
+### Features
+
+* allow slyting command ([fd3c35b](https://github.com/nguyenvanduocit/epubtrans/commit/fd3c35b9a5f1def00edc5b6a56abd94461a4a95f))
+* support language config ([8f2c740](https://github.com/nguyenvanduocit/epubtrans/commit/8f2c740d442773bb3c9efe121a62410e200beea6))
+* support serve command ([57e3414](https://github.com/nguyenvanduocit/epubtrans/commit/57e34141dbddd63a6aab67bf97bd99fc72e91bcd))
+
 ## 1.0.0 (2024-08-02)
 
 

@@ -11,12 +11,85 @@ You may want to watch the [tutorial video - Vietnamese](https://youtu.be/9MspqDL
 
 ## Installation
 
-1. Install Go. You can download it from [here](https://golang.org/dl/).
-2. Install the tool
+# epubtrans Installation Guide
+
+This guide provides instructions for installing the latest version of epubtrans on Windows, Linux, and macOS.
+
+## Prerequisites
+
+- Windows: PowerShell 5.1 or later
+- Linux/macOS: Bash shell
+- All systems: Internet connection to download the latest release
+
+## Installation Instructions
+
+### Windows
+
+1. Open PowerShell as Administrator.
+2. Run the following commands:
+
+```powershell
+$ErrorActionPreference = "Stop"
+$version = (Invoke-RestMethod "https://api.github.com/repos/nguyenvanduocit/epubtrans/releases/latest").tag_name
+$arch = if ([Environment]::Is64BitOperatingSystem) { "amd64" } else { "386" }
+$url = "https://github.com/nguyenvanduocit/epubtrans/releases/download/${version}/epubtrans_${version.Substring(1)}_windows_${arch}.tar.gz"
+Invoke-WebRequest -Uri $url -OutFile "epubtrans.tar.gz"
+tar -xzf epubtrans.tar.gz
+Move-Item -Force epubtrans.exe "C:\Windows\System32\"
+Remove-Item epubtrans.tar.gz
+Write-Host "epubtrans $version has been installed successfully!"
+```
+
+### Linux and macOS
+
+Open a terminal and run the following command:
 
 ```bash
-go install github.com/nguyenvanduocit/epubtrans@latest
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/nguyenvanduocit/epubtrans/main/scripts/install_unix.sh)"
 ```
+
+If the above command doesn't work, you can try the following manual installation steps:
+
+1. Open a terminal.
+2. Run the following commands:
+
+```bash
+#!/bin/bash
+set -e
+
+VERSION=$(curl -s "https://api.github.com/repos/nguyenvanduocit/epubtrans/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+ARCH=$(uname -m)
+case $ARCH in
+    x86_64) ARCH="amd64" ;;
+    aarch64|arm64) ARCH="arm64" ;;
+    i386|i686) ARCH="386" ;;
+esac
+
+DOWNLOAD_URL="https://github.com/nguyenvanduocit/epubtrans/releases/download/${VERSION}/epubtrans_${VERSION#v}_${OS}_${ARCH}.tar.gz"
+
+echo "Downloading epubtrans ${VERSION} for ${OS}_${ARCH}..."
+curl -L -o epubtrans.tar.gz "$DOWNLOAD_URL"
+
+echo "Extracting..."
+tar -xzf epubtrans.tar.gz
+
+echo "Installing..."
+sudo mv epubtrans /usr/local/bin/
+
+echo "Cleaning up..."
+rm epubtrans.tar.gz
+
+echo "epubtrans ${VERSION} has been installed successfully!"
+```
+
+After installation, verify that epubtrans was installed correctly by opening a new terminal or command prompt and running:
+
+```
+epubtrans --version
+```
+
+This should display the version number of the installed epubtrans.
 
 ## Usage
 
