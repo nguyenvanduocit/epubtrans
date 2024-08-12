@@ -9,13 +9,13 @@ import (
 
 // those variables will be set by the build script to the correct values
 var (
-	version = "dev"
+	version = "v0.0.0"
 	commit  = "none"
 	date    = "unknown"
 )
 
 func main() {
-	cmd.Root.Version = fmt.Sprintf("%s, commit %s, built at %s", version, commit, date)
+	cmd.Root.Version = fmt.Sprintf("%s-c%s-b%s", version, commit, date)
 	if err := cmd.Root.Execute(); err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)
