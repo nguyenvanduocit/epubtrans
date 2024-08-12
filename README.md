@@ -1,5 +1,7 @@
 # Epub Translator
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/nguyenvanduocit/epubtrans/blob/main/scripts/epub-translator-colab.ipynb)
+
 This project aims to quickly translate epub books into Vietnamese, packaging the result as a bilingual book. It's designed to maintain the original text format while providing a rough translation.
 
 [Watch the tutorial video (Vietnamese)](https://youtu.be/9MspqDLPaxQ)
