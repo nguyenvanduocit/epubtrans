@@ -20,7 +20,7 @@ var Unpack = &cobra.Command{
 			return fmt.Errorf("unpackedEpubPath is required")
 		}
 
-		return util.ValidateEpubPath(args[0])
+		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		zipPath := args[0]
