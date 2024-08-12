@@ -7,6 +7,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gofiber/fiber/v2"
 	"github.com/nguyenvanduocit/epubtrans/pkg/loader"
+	"github.com/nguyenvanduocit/epubtrans/pkg/util"
 	"github.com/spf13/cobra"
 	"io"
 	"io/ioutil"
@@ -20,10 +21,17 @@ import (
 )
 
 var Serve = &cobra.Command{
-	Use:   "serve [unpackedEpubPath]",
-	Short: "serve the content of an unpacked EPUB as a web server",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runServe,
+	Use:     "serve [unpackedEpubPath]",
+	Short:   "serve the content of an unpacked EPUB as a web server",
+	Example: "epubtrans serve path/to/unpacked/epub",
+	Args: func(cmd *cobra.Command, args []string) error {
+		if len(args) != 1 {
+			return fmt.Errorf("unpackedEpubPath is required")
+		}
+
+		return util.ValidateEpubPath(args[0])
+	},
+	RunE: runServe,
 }
 
 func init() {

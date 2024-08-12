@@ -14,11 +14,16 @@ import (
 )
 
 var Styling = &cobra.Command{
-	Use:   "styling [unpackedEpubPath]",
-	Short: "styling the content of an unpacked EPUB",
+	Use:     "styling [unpackedEpubPath]",
+	Short:   "styling the content of an unpacked EPUB",
+	Example: "epubtrans styling path/to/unpacked/epub",
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) != 1 {
-			return fmt.Errorf("requires exactly 1 arg(s), only received %d", len(args))
+			return fmt.Errorf("unpackedEpubPath is required")
+		}
+
+		if err := util.ValidateEpubPath(args[0]); err != nil {
+			return err
 		}
 
 		hide, err := cmd.Flags().GetString("hide")

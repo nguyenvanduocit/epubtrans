@@ -3,6 +3,7 @@ package cmd
 import (
 	"archive/zip"
 	"fmt"
+	"github.com/nguyenvanduocit/epubtrans/pkg/util"
 	"github.com/spf13/cobra"
 	"io"
 	"os"
@@ -13,11 +14,18 @@ import (
 )
 
 var Pack = &cobra.Command{
-	Use:   "pack [directory]",
-	Short: "Zip files in a directory",
-	Long:  "Zip files in a directory and create a new zip file",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runPack,
+	Use:     "pack [unpackaedEpubPath]",
+	Short:   "Zip files in a directory",
+	Long:    "Zip files in a directory and create a new zip file",
+	Example: "epubtrans pack path/to/unpacked/epub",
+	Args: func(cmd *cobra.Command, args []string) error {
+		if len(args) != 1 {
+			return fmt.Errorf("unpackedEpubPath is required")
+		}
+
+		return util.ValidateEpubPath(args[0])
+	},
+	RunE: runPack,
 }
 
 func init() {

@@ -30,10 +30,18 @@ var blacklist = []string{
 
 // Mark represents the command for marking content in EPUB files
 var Mark = &cobra.Command{
-	Use:   "mark [epub_path]",
-	Short: "Mark content in EPUB files",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runMark,
+	Use:     "mark [epub_path]",
+	Short:   "Mark content in EPUB files",
+	Long:    "Mark content in EPUB files by adding a unique ID to each content node",
+	Example: "epubtrans mark path/to/unpacked/epub",
+	Args: func(cmd *cobra.Command, args []string) error {
+		if len(args) != 1 {
+			return fmt.Errorf("unpackedEpubPath is required")
+		}
+
+		return util.ValidateEpubPath(args[0])
+	},
+	RunE: runMark,
 }
 
 func init() {

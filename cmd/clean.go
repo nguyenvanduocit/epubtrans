@@ -14,10 +14,19 @@ import (
 )
 
 var Clean = &cobra.Command{
-	Use:   "clean [unpackedEpubPath]",
-	Short: "Clean the html files",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runCleaner,
+	Use:     "clean [unpackedEpubPath]",
+	Short:   "Clean the html files",
+	Long:    "Clean the html files by removing empty anchor and div tags",
+	Example: "epubtrans clean path/to/unpacked/epub",
+	Args: func(cmd *cobra.Command, args []string) error {
+		if len(args) != 1 {
+			return fmt.Errorf("unpackedEpubPath is required")
+		}
+
+		return util.ValidateEpubPath(args[0])
+	},
+	Version: "0.1.0",
+	RunE:    runCleaner,
 }
 
 type CleaningOperation func(string) string

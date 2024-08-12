@@ -11,9 +11,17 @@ import (
 )
 
 var Unpack = &cobra.Command{
-	Use:   "unpack",
-	Short: "unpack a book",
-	Args:  cobra.ExactArgs(1),
+	Use:     "unpack",
+	Short:   "unpack a book",
+	Long:    "Unpack a book and create a directory with the same name as the book",
+	Example: "epubtrans unpack path/to/book.epub",
+	Args: func(cmd *cobra.Command, args []string) error {
+		if len(args) != 1 {
+			return fmt.Errorf("unpackedEpubPath is required")
+		}
+
+		return util.ValidateEpubPath(args[0])
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		zipPath := args[0]
 
