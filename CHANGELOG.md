@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.4.0](https://github.com/nguyenvanduocit/epubtrans/compare/v2.3.1...v2.4.0) (2024-08-12)
+
+
+### Features
+
+* **scripts:** update colab notebook ([e6301b2](https://github.com/nguyenvanduocit/epubtrans/commit/e6301b21db0e8307a0d15cbb15bf0b21c9a24b2e))
+
 ## [2.3.1](https://github.com/nguyenvanduocit/epubtrans/compare/v2.3.0...v2.3.1) (2024-08-12)
 
 
