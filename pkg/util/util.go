@@ -1,14 +1,40 @@
 package util
 
 import (
+	"errors"
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
+	"strings"
 )
 
-func GetUnzipPath(zipPath string) string {
-	return path.Dir(zipPath) + "/" + path.Base(zipPath)[:len(path.Base(zipPath))-len(filepath.Ext(zipPath))]
+func GetUnzipDestination(zipPath string) (string, error) {
+	if zipPath == "" {
+		return "", errors.New("zipPath cannot be empty")
+	}
+
+	// Clean the path to handle any ".." or "." components
+	zipPath = filepath.Clean(zipPath)
+
+	// Get the directory and filename
+	dir := filepath.Dir(zipPath)
+	filename := filepath.Base(zipPath)
+
+	// Remove the extension (if any)
+	extIndex := strings.LastIndex(filename, ".")
+	if extIndex > 0 {
+		filename = filename[:extIndex]
+	}
+
+	// Join the directory and filename to create the destination path
+	result := filepath.Join(dir, filename)
+
+	// Handle the root directory case
+	if dir == "/" && !strings.HasPrefix(result, "/") {
+		result = "/" + result
+	}
+
+	return result, nil
 }
 
 func ValidateEpubPath(epubPath string) error {

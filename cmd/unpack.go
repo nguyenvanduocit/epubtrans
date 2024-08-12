@@ -24,8 +24,13 @@ var Unpack = &cobra.Command{
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		zipPath := args[0]
+		unzipPath, err := util.GetUnzipDestination(zipPath)
 
-		if err := unzipBook(zipPath, util.GetUnzipPath(zipPath)); err != nil {
+		cmd.Println("Unzipping to:", unzipPath)
+		if err != nil {
+			return err
+		}
+		if err := unzipBook(zipPath, unzipPath); err != nil {
 			return err
 		}
 
