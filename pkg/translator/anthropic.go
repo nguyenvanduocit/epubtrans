@@ -37,7 +37,7 @@ func GetAnthropicTranslator(cfg *Config) (*Anthropic, error) {
 				Temperature:  0.3,
 				MaxTokens:    1000,
 				CacheTTL:     15 * time.Minute,
-				CacheMaxCost: 1e7, // 10MB, adjust as needed
+				CacheMaxCost: 1e7,
 			}
 		}
 
