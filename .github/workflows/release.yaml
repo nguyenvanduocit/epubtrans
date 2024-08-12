@@ -20,7 +20,20 @@ jobs:
         id: release
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          config-file: release-please-config.json
+          release-type: go
+          changelog-types: '[{"type":"feat","section":"Features","hidden":false},{"type":"fix","section":"Bug Fixes","hidden":false},{"type":"chore","section":"Miscellaneous","hidden":false},{"type":"refactor","section":"Refactoring","hidden":false}]'
+      - name: Release Please Output
+        if: steps.release.outputs.release_created
+        run: |
+          echo "Release created: ${{ steps.release.outputs.release_created }}"
+          echo "Tag name: ${{ steps.release.outputs.tag_name }}"
+          echo "Release name: ${{ steps.release.outputs.name }}"
+      - name: No Release Created
+        if: ${{ !steps.release.outputs.release_created }}
+        run: |
+          echo "No release was created. Here's some debug information:"
+          echo "Latest commit message: ${{ github.event.head_commit.message }}"
+          echo "Release Please output: ${{ toJson(steps.release.outputs) }}"
 
   goreleaser:
     needs: release-please
