@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.0](https://github.com/nguyenvanduocit/epubtrans/compare/v1.5.0...v1.6.0) (2024-08-12)
+
+
+### Features
+
+* **upgrade:** improve checksum verification and binary installation ([0210aca](https://github.com/nguyenvanduocit/epubtrans/commit/0210acab019cabf1f729fd7a642b7edb48c32701))
+
 ## [1.5.0](https://github.com/nguyenvanduocit/epubtrans/compare/v1.4.0...v1.5.0) (2024-08-12)
 
 
