@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.0](https://github.com/nguyenvanduocit/epubtrans/compare/v1.2.0...v1.3.0) (2024-08-12)
+
+
+### Features
+
+* update build config ([f82e39f](https://github.com/nguyenvanduocit/epubtrans/commit/f82e39f1b212b0cb143fc5b35b8c399cfd8231f3))
+* update build config ([1d110ef](https://github.com/nguyenvanduocit/epubtrans/commit/1d110efbcc33c15e22e80589ba5e92584a5d864f))
+
 ## [1.2.0](https://github.com/nguyenvanduocit/epubtrans/compare/v1.1.0...v1.2.0) (2024-08-12)
 
 
