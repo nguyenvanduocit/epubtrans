@@ -54,15 +54,29 @@ This should display the version number of the installed epubtrans.
 
 ## Usage
 
-To manage the translation content, we need to mark the content that needs to be translated, then translate and mark the
-translated content. We divide it into 3 commands.
+```
+Usage:
+  epubtrans [flags]
+  epubtrans [command]
 
-1. `unpack` to extract the epub file.
-2. `mark` to mark the content that needs to be translated.
-3. `clean` to clean up erroneous content.
-4. `translate` to translate the marked content.
-5. `pack` to package it into a bilingual book.
-6. `serve` to serve the whole book as a static webserver.
+Available Commands:
+  clean       Clean the html files
+  completion  Generate the autocompletion script for the specified shell
+  help        Help about any command
+  mark        Mark content in EPUB files
+  pack        Zip files in a directory
+  serve       serve the content of an unpacked EPUB as a web server
+  styling     styling the content of an unpacked EPUB
+  translate   Translate the content of an unpacked EPUB
+  unpack      unpack a book
+  upgrade     Self update the tool
+
+Flags:
+  -h, --help      help for epubtrans
+  -v, --version   version for epubtrans
+
+Use "epubtrans [command] --help" for more information about a command.
+```
 
 ### Step-by-step
 
