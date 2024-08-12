@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/nguyenvanduocit/epubtrans/compare/v1.3.0...v1.4.0) (2024-08-12)
+
+
+### Features
+
+* improve command docs and example ([ddacd2e](https://github.com/nguyenvanduocit/epubtrans/commit/ddacd2e11f2faf068c5bc01cc08a6a7777f633b3))
+
 ## [1.3.0](https://github.com/nguyenvanduocit/epubtrans/compare/v1.2.0...v1.3.0) (2024-08-12)
 
 
