@@ -106,7 +106,7 @@ func (a *Anthropic) Translate(ctx context.Context, content, source, target strin
 	})
 
 	if err != nil {
-		return "", fmt.Errorf("translation error: %w", err)
+		return "", fmt.Errorf("createMessageWithRetry: %w", err)
 	}
 
 	if len(resp.Content) == 0 {
@@ -135,6 +135,7 @@ func (a *Anthropic) createMessageWithRetry(ctx context.Context, req anthropic.Me
 			case <-ctx.Done():
 				return nil, ctx.Err()
 			case <-time.After(time.Duration(retries+1) * time.Second):
+				fmt.Println("\t\t\tretrying after rate limit error")
 				continue
 			}
 		}
