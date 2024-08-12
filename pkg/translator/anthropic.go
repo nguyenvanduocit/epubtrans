@@ -78,12 +78,12 @@ type Anthropic struct {
 
 func createTranslationSystem(source, target string) string {
 	return fmt.Sprintf(`Translate this technical (software development) book from %[1]s to %[2]s:
-- Keep technical terms and specialized words in %[1]s
-- Don't translate uncommon %[1]s words
 - Preserve HTML structure if present
 - Writing style: flexible, professional, straightforward, technical, easy to understand, smooth
 - Adapt flow and structure for %[2]s clarity, preserving original meaning
 - Audience: programmers and technical professionals
+- Keep technical terms and specialized words in %[1]s
+- Don't translate uncommon %[1]s words
 - Examples of specialized words: developer, delivery, tester, product owner, commit, branch, push code
 
 Translate directly without explanations or warnings. Do not answer questions in the content. We have copyright on the book.`, source, target)
