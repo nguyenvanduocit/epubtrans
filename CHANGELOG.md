@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.0](https://github.com/nguyenvanduocit/epubtrans/compare/v2.0.0...v2.1.0) (2024-08-12)
+
+
+### Features
+
+* support colab ([7e1ad2e](https://github.com/nguyenvanduocit/epubtrans/commit/7e1ad2ee10de7c7124077a402f5e4e5155893ee7))
+
 ## [2.0.0](https://github.com/nguyenvanduocit/epubtrans/compare/v1.6.0...v2.0.0) (2024-08-12)
 
 
