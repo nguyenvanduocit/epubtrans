@@ -44,41 +44,6 @@ Open a terminal and run the following command:
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/nguyenvanduocit/epubtrans/main/scripts/install_unix.sh)"
 ```
 
-If the above command doesn't work, you can try the following manual installation steps:
-
-1. Open a terminal.
-2. Run the following commands:
-
-```bash
-#!/bin/bash
-set -e
-
-VERSION=$(curl -s "https://api.github.com/repos/nguyenvanduocit/epubtrans/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-OS=$(uname -s | tr '[:upper:]' '[:lower:]')
-ARCH=$(uname -m)
-case $ARCH in
-    x86_64) ARCH="amd64" ;;
-    aarch64|arm64) ARCH="arm64" ;;
-    i386|i686) ARCH="386" ;;
-esac
-
-DOWNLOAD_URL="https://github.com/nguyenvanduocit/epubtrans/releases/download/${VERSION}/epubtrans_${VERSION#v}_${OS}_${ARCH}.tar.gz"
-
-echo "Downloading epubtrans ${VERSION} for ${OS}_${ARCH}..."
-curl -L -o epubtrans.tar.gz "$DOWNLOAD_URL"
-
-echo "Extracting..."
-tar -xzf epubtrans.tar.gz
-
-echo "Installing..."
-sudo mv epubtrans /usr/local/bin/
-
-echo "Cleaning up..."
-rm epubtrans.tar.gz
-
-echo "epubtrans ${VERSION} has been installed successfully!"
-```
-
 After installation, verify that epubtrans was installed correctly by opening a new terminal or command prompt and running:
 
 ```
@@ -118,13 +83,13 @@ epubtrans unpack /path/to/file.epub
 2. Clean up html files.
 
  ```bash
-epubtrans clean /path/to/unpacked
+epubtrans clean /path/to/unpacked-epub
  ```
 
 3. Mark the content that needs to be translated.
 
  ```bash
-epubtrans mark /path/to/unpacked
+epubtrans mark /path/to/unpacked-epub
  ```
 
 At this point, you will see a folder with the name of the epub, containing the html files of the epub. The content of
@@ -133,7 +98,7 @@ these html files has been marked.
 4. Translate the marked content.
 
  ```bash
-epubtrans translate /path/to/unpacked
+epubtrans translate /path/to/unpacked-epub --source English --target Vietnamese
  ```
 
 This process will take some time. At the end of the process, you will have html files with the translated content.
