@@ -20,7 +20,6 @@ import (
 var (
 	sourceLanguage string
 	targetLanguage string
-	numWorkers     int
 )
 
 var Translate = &cobra.Command{
@@ -41,7 +40,6 @@ var Translate = &cobra.Command{
 func init() {
 	Translate.Flags().StringVar(&sourceLanguage, "source", "English", "source language")
 	Translate.Flags().StringVar(&targetLanguage, "target", "Vietnamese", "target language")
-	Translate.Flags().IntVar(&numWorkers, "workers", 1, "Number of worker goroutines")
 }
 func runTranslate(cmd *cobra.Command, args []string) error {
 	unzipPath := args[0]
@@ -65,7 +63,7 @@ func runTranslate(cmd *cobra.Command, args []string) error {
 	limiter := rate.NewLimiter(rate.Every(time.Minute/50), 1)
 
 	return processor.ProcessEpub(ctx, unzipPath, processor.Config{
-		Workers:      numWorkers,
+		Workers:      1,
 		JobBuffer:    1,
 		ResultBuffer: 10,
 	}, func(ctx context.Context, filePath string) error {
