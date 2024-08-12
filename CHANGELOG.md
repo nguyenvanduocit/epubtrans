@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.1](https://github.com/nguyenvanduocit/epubtrans/compare/v2.3.0...v2.3.1) (2024-08-12)
+
+
+### Bug Fixes
+
+* **util:** improve error handling and add tests for GetUnzipDestination ([e9690ba](https://github.com/nguyenvanduocit/epubtrans/commit/e9690ba0eb95885789ddac2208c08fb901441902))
+
 ## [2.3.0](https://github.com/nguyenvanduocit/epubtrans/compare/v2.2.0...v2.3.0) (2024-08-12)
 
 
