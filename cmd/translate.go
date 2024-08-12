@@ -132,12 +132,12 @@ func translateElement(ctx context.Context, i int, contentEl *goquery.Selection, 
 
 	anthropicTranslator, err := translator.GetAnthropicTranslator(nil)
 	if err != nil {
-		fmt.Printf("Error getting translator: %v\n", err)
+		fmt.Printf("\t\tError getting translator: %v\n", err)
 		return false
 	}
 	translatedContent, err := anthropicTranslator.Translate(ctx, htmlToTranslate, sourceLanguage, targetLanguage)
 	if err != nil {
-		fmt.Printf("Translation error: %v\n", err)
+		fmt.Printf("\t\tTranslation error: %v\n", err)
 
 		if errors.Is(err, translator.ErrRateLimitExceeded) {
 			return false
