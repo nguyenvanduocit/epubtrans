@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0](https://github.com/nguyenvanduocit/epubtrans/compare/v1.4.0...v1.5.0) (2024-08-12)
+
+
+### Features
+
+* **cmd:** add self-upgrade functionality and refactor version handling ([70d91c0](https://github.com/nguyenvanduocit/epubtrans/commit/70d91c07a4696b87d210579fba29b6e99e763efa))
+
 ## [1.4.0](https://github.com/nguyenvanduocit/epubtrans/compare/v1.3.0...v1.4.0) (2024-08-12)
 
 
