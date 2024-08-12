@@ -5,7 +5,7 @@ import (
 )
 
 var Root = &cobra.Command{
-	Use: "translate",
+	Use: "epubtrans",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return cmd.Help()
 	},
