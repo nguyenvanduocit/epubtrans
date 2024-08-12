@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.3.0](https://github.com/nguyenvanduocit/epubtrans/compare/v2.2.0...v2.3.0) (2024-08-12)
+
+
+### Features
+
+* **scripts:** remove unused imports in epub-translator-colab.ipynb ([a9bedf0](https://github.com/nguyenvanduocit/epubtrans/commit/a9bedf0309df869008e614a47b566fc1e2355c16))
+
+
+### Bug Fixes
+
+* **translator:** improve error handling and logging ([8cb3a00](https://github.com/nguyenvanduocit/epubtrans/commit/8cb3a005566310b28c0e8c9ee2ba61bcf2b455a3))
+
 ## [2.2.0](https://github.com/nguyenvanduocit/epubtrans/compare/v2.1.0...v2.2.0) (2024-08-12)
 
 
