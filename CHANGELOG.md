@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/nguyenvanduocit/epubtrans/compare/v1.1.0...v1.2.0) (2024-08-12)
+
+
+### Features
+
+* **install:** add installation guide and scripts ([fb4fd3f](https://github.com/nguyenvanduocit/epubtrans/commit/fb4fd3f90701d8db78161eada3e3d87f6b091003))
+
 ## [1.1.0](https://github.com/nguyenvanduocit/epubtrans/compare/v1.0.0...v1.1.0) (2024-08-12)
 
 
