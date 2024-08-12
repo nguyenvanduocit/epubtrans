@@ -2,7 +2,10 @@ package cmd
 
 import (
 	"archive/tar"
+	"bufio"
 	"compress/gzip"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/Masterminds/semver/v3"
@@ -121,7 +124,7 @@ func downloadAndInstall(cmd *cobra.Command, release *GithubRelease) error {
 	defer os.Remove(tmpFile.Name())
 
 	cmd.Println("Verifying download...")
-	if err := verifyChecksum(tmpFile.Name(), assetName); err != nil {
+	if err := verifyChecksum(tmpFile.Name(), assetName, release); err != nil {
 		return err
 	}
 
@@ -178,9 +181,53 @@ func downloadFile(cmd *cobra.Command, url string) (*os.File, error) {
 	return tmpFile, nil
 }
 
-func verifyChecksum(filePath, assetName string) error {
-	// Implementation of checksum verification
-	// This is a placeholder and should be replaced with actual checksum verification logic
+func verifyChecksum(filePath, assetName string, release *GithubRelease) error {
+	// Download the checksum file
+	checksumURL := fmt.Sprintf("https://github.com/nguyenvanduocit/epubtrans/releases/download/%s/epubtrans_%s_checksums.txt", release.TagName, strings.TrimPrefix(release.TagName, "v"))
+	resp, err := http.Get(checksumURL)
+	if err != nil {
+		return fmt.Errorf("failed to download checksum file: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Read and parse the checksum file
+	checksums := make(map[string]string)
+	scanner := bufio.NewScanner(resp.Body)
+	for scanner.Scan() {
+		parts := strings.Fields(scanner.Text())
+		if len(parts) == 2 {
+			checksums[parts[1]] = parts[0]
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return fmt.Errorf("failed to read checksum file: %w", err)
+	}
+
+	// Get the expected checksum for our asset
+	expectedChecksum, ok := checksums[assetName]
+	if !ok {
+		return fmt.Errorf("no checksum found for %s", assetName)
+	}
+
+	// Calculate the SHA256 checksum of the downloaded file
+	f, err := os.Open(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to open downloaded file: %w", err)
+	}
+	defer f.Close()
+
+	h := sha256.New()
+	if _, err := io.Copy(h, f); err != nil {
+		return fmt.Errorf("failed to calculate checksum: %w", err)
+	}
+
+	actualChecksum := hex.EncodeToString(h.Sum(nil))
+
+	// Compare the checksums
+	if actualChecksum != expectedChecksum {
+		return fmt.Errorf("checksum mismatch for %s", assetName)
+	}
+
 	return nil
 }
 
@@ -233,22 +280,59 @@ func extractTarGz(cmd *cobra.Command, tarGzPath string) error {
 func installBinary() error {
 	executable, err := os.Executable()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get executable path: %w", err)
 	}
 
+	// Create a backup of the current executable
 	backupPath := executable + ".bak"
-	if err := os.Rename(executable, backupPath); err != nil {
-		return err
+	if err := copyFile(executable, backupPath); err != nil {
+		return fmt.Errorf("failed to create backup: %w", err)
 	}
 
-	if err := os.Rename("epubtrans", executable); err != nil {
-		// Rollback if installation fails
-		os.Rename(backupPath, executable)
-		return err
+	// Copy the new binary to the executable path
+	if err := copyFile("epubtrans", executable); err != nil {
+		// If copy fails, try to restore the backup
+		copyFile(backupPath, executable)
+		os.Remove(backupPath)
+		return fmt.Errorf("failed to install new version: %w", err)
 	}
 
+	// Remove the temporary extracted binary and the backup
+	os.Remove("epubtrans")
 	os.Remove(backupPath)
+
 	return nil
+}
+
+func copyFile(src, dst string) error {
+	sourceFileStat, err := os.Stat(src)
+	if err != nil {
+		return err
+	}
+
+	if !sourceFileStat.Mode().IsRegular() {
+		return fmt.Errorf("%s is not a regular file", src)
+	}
+
+	source, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer source.Close()
+
+	destination, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer destination.Close()
+
+	_, err = io.Copy(destination, source)
+	if err != nil {
+		return err
+	}
+
+	// Preserve the original file mode
+	return os.Chmod(dst, sourceFileStat.Mode())
 }
 
 type ProgressBar struct {
