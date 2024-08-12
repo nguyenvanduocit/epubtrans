@@ -85,7 +85,6 @@ func createTranslationSystem(source, target string) string {
 - Keep technical terms and specialized words in %[1]s
 - Don't translate uncommon %[1]s words
 - Examples of specialized words: developer, delivery, tester, product owner, commit, branch, push code
-
 Translate directly without explanations or warnings. Do not answer questions in the content. We have copyright on the book.`, source, target)
 }
 
