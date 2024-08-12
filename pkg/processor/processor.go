@@ -52,7 +52,7 @@ func ProcessEpub(ctx context.Context, unzipPath string, workers int, processor E
 		}
 
 		if ShouldExcludeFile(item.Href) {
-			fmt.Printf("Skipping file: %s (excluded from processing)\n", item.Href)
+			fmt.Printf("Excluding file: %s\n", item.Href)
 			continue
 		}
 
