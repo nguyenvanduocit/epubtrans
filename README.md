@@ -11,17 +11,13 @@ You may want to watch the [tutorial video - Vietnamese](https://youtu.be/9MspqDL
 
 ## Installation
 
-# epubtrans Installation Guide
-
 This guide provides instructions for installing the latest version of epubtrans on Windows, Linux, and macOS.
 
-## Prerequisites
+### Prerequisites
 
 - Windows: PowerShell 5.1 or later
 - Linux/macOS: Bash shell
 - All systems: Internet connection to download the latest release
-
-## Installation Instructions
 
 ### Windows
 
