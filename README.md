@@ -1,28 +1,44 @@
 # Epub Translator
 
-This project aims to quickly translate epub books into Vietnamese. It packages the result as a bilingual book.
+This project aims to quickly translate epub books into Vietnamese, packaging the result as a bilingual book. It's designed to maintain the original text format while providing a rough translation.
 
-You may want to watch the [tutorial video - Vietnamese](https://youtu.be/9MspqDLPaxQ).
+[Watch the tutorial video (Vietnamese)](https://youtu.be/9MspqDLPaxQ)
 
-## Acceptance Criteria
+## Table of Contents
+- [Quick Start](#quick-start)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Web Serving](#web-serving)
+- [Editing Translations](#editing-translations)
+- [Contributing](#contributing)
+- [Limitations and Known Issues](#limitations-and-known-issues)
 
-- [x] Only need to create a rough translation.
-- [x] Maintain the format of the original text.
+## Quick Start
+
+1. Install Epub Translator (see [Installation](#installation))
+2. Set up your ANTHROPIC_KEY:
+   ```bash
+   export ANTHROPIC_KEY=your_anthropic_key
+   ```
+3. Translate a book:
+   ```bash
+   epubtrans unpack /path/to/book.epub
+   epubtrans clean /path/to/unpacked-epub
+   epubtrans mark /path/to/unpacked-epub
+   epubtrans translate /path/to/unpacked-epub --source English --target Vietnamese
+   epubtrans pack /path/to/unpacked
+   ```
 
 ## Installation
 
-This guide provides instructions for installing the latest version of epubtrans on Windows, Linux, and macOS.
-
 ### Prerequisites
-
 - Windows: PowerShell 5.1 or later
 - Linux/macOS: Bash shell
-- All systems: Internet connection to download the latest release
+- All systems: Internet connection
 
 ### Windows
 
-1. Open PowerShell as Administrator.
-2. Run the following commands:
+1. Open PowerShell as Administrator and run:
 
 ```powershell
 $ErrorActionPreference = "Stop"
@@ -38,21 +54,23 @@ Write-Host "epubtrans $version has been installed successfully!"
 
 ### Linux and macOS
 
-Open a terminal and run the following command:
+Open a terminal and run:
 
 ```bash
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/nguyenvanduocit/epubtrans/main/scripts/install_unix.sh)"
 ```
 
-After installation, verify that epubtrans was installed correctly by opening a new terminal or command prompt and running:
+### Verify Installation
+
+After installation, verify by running:
 
 ```
 epubtrans --version
 ```
 
-This should display the version number of the installed epubtrans.
-
 ## Usage
+
+### Available Commands
 
 ```
 Usage:
@@ -65,109 +83,93 @@ Available Commands:
   help        Help about any command
   mark        Mark content in EPUB files
   pack        Zip files in a directory
-  serve       serve the content of an unpacked EPUB as a web server
-  styling     styling the content of an unpacked EPUB
+  serve       Serve the content of an unpacked EPUB as a web server
+  styling     Style the content of an unpacked EPUB
   translate   Translate the content of an unpacked EPUB
-  unpack      unpack a book
+  unpack      Unpack a book
   upgrade     Self update the tool
 
 Flags:
   -h, --help      help for epubtrans
   -v, --version   version for epubtrans
-
-Use "epubtrans [command] --help" for more information about a command.
 ```
 
-### Step-by-step
+### Step-by-step Guide
 
-All commands take the path to the epub file to be translated as the first parameter.
+0. Configure environment:
+   ```bash
+   export ANTHROPIC_KEY=your_anthropic_key
+   ```
+   Note: You need to obtain an ANTHROPIC_KEY from Anthropic's website to use their translation API.
 
-0. Config env
+1. Unpack the epub file:
+   ```bash
+   epubtrans unpack /path/to/file.epub
+   ```
+
+2. Clean up HTML files:
+   ```bash
+   epubtrans clean /path/to/unpacked-epub
+   ```
+
+3. Mark content for translation:
+   ```bash
+   epubtrans mark /path/to/unpacked-epub
+   ```
+
+4. Translate marked content:
+   ```bash
+   epubtrans translate /path/to/unpacked-epub --source English --target Vietnamese
+   ```
+
+5. (Optional) Apply styling:
+   ```bash
+   epubtrans styling /path/to/unpacked --hide "source|target"
+   ```
+
+the command also make original text to be faded out a little bit, so that the translated text can be more visible.
+
+6. Package into a bilingual book:
+   ```bash
+   epubtrans pack /path/to/unpacked
+   ```
+
+## Web Serving
+
+To serve the book on the web:
 
 ```bash
-export ANTHROPIC_KEY=your_anthropic_key
+epubtrans serve /path/to/unpacked
 ```
 
-1. Unpack the epub file.
-
- ```bash
-epubtrans unpack /path/to/file.epub
- ```
-
-2. Clean up html files.
-
- ```bash
-epubtrans clean /path/to/unpacked-epub
- ```
-
-3. Mark the content that needs to be translated.
-
- ```bash
-epubtrans mark /path/to/unpacked-epub
- ```
-
-At this point, you will see a folder with the name of the epub, containing the html files of the epub. The content of
-these html files has been marked.
-
-4. Translate the marked content.
-
- ```bash
-epubtrans translate /path/to/unpacked-epub --source English --target Vietnamese
- ```
-
-This process will take some time. At the end of the process, you will have html files with the translated content.
-
-5. Apply style to the translated content.
-
-The step is optional. Only when you want to apply some style to the translated content.
-
- ```bash
-epubtrans styling /path/to/unpacked --hide "source|target"
- ```
-
-6. Package it into a bilingual book.
-
- ```bash
-epubtrans pack /path/to/unpacked
- ```
-
-At this point, you will have a repacked epub file with bilingual content.
-
-## How to serve the book on web?
-
-You can run the command `serve`. then the console will show you the address to access the book.
-
-There are some important endpoints:
-
+Important endpoints:
 - http://localhost:8080/api/info
 - http://localhost:8080/toc.html
 - http://localhost:3000/api/manifest
 - http://localhost:3000/api/spine
 
-### How to edit the translation?
+## Editing Translations
 
-When accessing the book via `serve` command, you can see that the translated content is editable. After edit and leave the mouse, the content will be saved automatically.
+When accessing the book via the `serve` command, the translated content is editable. After editing, the content is automatically saved when you move the mouse away.
 
-After that, you just need to run the `pack` command to package the book again.
+To apply changes, run the `pack` command again.
 
-## Snippets
+[Watch the editing tutorial video](https://youtu.be/XKIj-gyHgmI)
 
-### How to hide all English content?
+## Contributing
 
-You need to add the following CSS to every html file or css file:
+We welcome contributions to the Epub Translator project! Here's how you can help:
 
-```css
-[data-content-id] {
-    display: none !important;
-}
-```
+1. Fork the repository
+2. Create a new branch for your feature or bug fix
+3. Make your changes and commit them
+4. Push to your fork and submit a pull request
 
-### How to make original content less visible?
+Please ensure your code adheres to the project's coding standards and include tests for new features.
 
-You need to add the following CSS to every html file or css file:
+## Limitations and Known Issues
 
-```css
-[data-content-id] {
-    opacity: 0.8;
-}
-```
+- The quality of translation depends on the Anthropic API and may not be perfect for all types of content.
+- Large books may take a considerable amount of time to translate.
+
+For any issues or feature requests, please open an issue on the GitHub repository.
