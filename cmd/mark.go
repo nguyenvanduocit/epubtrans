@@ -120,7 +120,10 @@ func processNode(n *html.Node) {
 
 		if !isContainer(n) {
 			content := extractTextContent(n)
-			if content != "" {
+			if util.IsEmptyOrWhitespace(content) || len(content) <= 1 || util.IsNumeric(content) {
+				fmt.Println("Skipping non-empty or non-numeric content: ", content)
+				return
+			} else {
 				// Mark this node
 				randomID, err := generateContentID([]byte(content))
 				if err != nil {

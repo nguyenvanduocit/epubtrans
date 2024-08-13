@@ -32,12 +32,10 @@ func GetAnthropicTranslator(cfg *Config) (*Anthropic, error) {
 	anthropicOnce.Do(func() {
 		if cfg == nil {
 			cfg = &Config{
-				APIKey:       os.Getenv("ANTHROPIC_KEY"),
-				Model:        anthropic.ModelClaude3Dot5Sonnet20240620,
-				Temperature:  0.3,
-				MaxTokens:    1000,
-				CacheTTL:     15 * time.Minute,
-				CacheMaxCost: 1e7,
+				APIKey:      os.Getenv("ANTHROPIC_KEY"),
+				Model:       anthropic.ModelClaude3Dot5Sonnet20240620,
+				Temperature: 0.3,
+				MaxTokens:   1000,
 			}
 		}
 
@@ -45,6 +43,9 @@ func GetAnthropicTranslator(cfg *Config) (*Anthropic, error) {
 			err = errors.New("missing ANTHROPIC_KEY")
 			return
 		}
+
+		cfg.CacheTTL = 15 * time.Minute
+		cfg.CacheMaxCost = 1e7
 
 		cache, cacheErr := ristretto.NewCache(&ristretto.Config{
 			NumCounters: 1e7,              // number of keys to track frequency of (10M).

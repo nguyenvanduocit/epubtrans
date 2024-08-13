@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -49,4 +50,13 @@ func ValidateEpubPath(epubPath string) error {
 		return fmt.Errorf("epub path %s is not a directory", epubPath)
 	}
 	return nil
+}
+
+func IsEmptyOrWhitespace(s string) bool {
+	return len(strings.TrimSpace(s)) == 0
+}
+
+func IsNumeric(s string) bool {
+	_, err := strconv.Atoi(s)
+	return err == nil
 }

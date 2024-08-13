@@ -55,11 +55,9 @@ func ProcessEpub(ctx context.Context, unzipPath string, cfg Config, processor Ep
 			}
 
 			if ShouldExcludeFile(item.Href) {
-				fmt.Printf("Excluding file: %s\n", item.Href)
+				fmt.Printf("Excluded file: %s\n", item.Href)
 				continue
 			}
-
-			fmt.Println("Processing file:", item.Href)
 			filePath := filepath.Join(contentDir, item.Href)
 			select {
 			case jobs <- filePath:

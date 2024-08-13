@@ -5,14 +5,18 @@ import (
 	"errors"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
+	"github.com/liushuangls/go-anthropic/v2"
 	"github.com/nguyenvanduocit/epubtrans/pkg/processor"
 	"github.com/nguyenvanduocit/epubtrans/pkg/translator"
 	"github.com/nguyenvanduocit/epubtrans/pkg/util"
 	"github.com/spf13/cobra"
 	"golang.org/x/time/rate"
+	"math"
+	"math/rand"
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -40,7 +44,33 @@ var Translate = &cobra.Command{
 func init() {
 	Translate.Flags().StringVar(&sourceLanguage, "source", "English", "source language")
 	Translate.Flags().StringVar(&targetLanguage, "target", "Vietnamese", "target language")
+	Translate.Flags().String("model", anthropic.ModelClaude3Dot5Sonnet20240620, "Anthropic model to use")
 }
+
+type elementToTranslate struct {
+	filePath      string
+	contentEl     *goquery.Selection
+	doc           *goquery.Document
+	totalElements int
+	index         int
+}
+
+var fileLocks = make(map[string]*sync.Mutex)
+var fileLocksLock sync.Mutex
+
+func getFileLock(filePath string) *sync.Mutex {
+	fileLocksLock.Lock()
+	defer fileLocksLock.Unlock()
+
+	if lock, exists := fileLocks[filePath]; exists {
+		return lock
+	}
+
+	lock := &sync.Mutex{}
+	fileLocks[filePath] = lock
+	return lock
+}
+
 func runTranslate(cmd *cobra.Command, args []string) error {
 	unzipPath := args[0]
 	ctx, cancel := context.WithCancel(cmd.Context())
@@ -60,18 +90,61 @@ func runTranslate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	limiter := rate.NewLimiter(rate.Every(time.Minute/50), 1)
+	limiter := rate.NewLimiter(rate.Every(time.Minute/50), 10)
 
-	return processor.ProcessEpub(ctx, unzipPath, processor.Config{
+	anthropicTranslator, err := translator.GetAnthropicTranslator(&translator.Config{
+		APIKey:      os.Getenv("ANTHROPIC_KEY"),
+		Model:       cmd.Flag("model").Value.String(),
+		Temperature: 0.3,
+		MaxTokens:   4096,
+	})
+	if err != nil {
+		return fmt.Errorf("error getting translator: %v", err)
+	}
+
+	// we can handle 10 elements at a time
+	elementChan := make(chan elementToTranslate, 10)
+	doneChan := make(chan struct{})
+
+	go processElements(ctx, elementChan, doneChan, anthropicTranslator, limiter)
+
+	// 1 worker and 1 job at a time, mean 1 file at a time
+	err = processor.ProcessEpub(ctx, unzipPath, processor.Config{
 		Workers:      1,
 		JobBuffer:    1,
 		ResultBuffer: 10,
 	}, func(ctx context.Context, filePath string) error {
-		return translateFile(ctx, filePath, limiter)
+		return processFile(ctx, filePath, elementChan)
 	})
+
+	close(elementChan)
+	<-doneChan
+
+	return err
 }
 
-func translateFile(ctx context.Context, filePath string, limiter *rate.Limiter) error {
+func processElements(ctx context.Context, elementChan <-chan elementToTranslate, doneChan chan<- struct{}, anthropicTranslator translator.Translator, limiter *rate.Limiter) {
+	defer close(doneChan)
+
+	for element := range elementChan {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			fmt.Printf("Processing %s:%s\n", element.filePath, element.contentEl.AttrOr(util.ContentIdKey, ""))
+			if translated := translateElement(ctx, element, anthropicTranslator, limiter); translated {
+				fileLock := getFileLock(element.filePath)
+				fileLock.Lock()
+				if err := writeContentToFile(element.filePath, element.doc); err != nil {
+					fmt.Printf("Error writing to file: %v\n", err)
+				}
+				fileLock.Unlock()
+			}
+		}
+	}
+}
+
+func processFile(ctx context.Context, filePath string, elementChan chan<- elementToTranslate) error {
 	doc, err := openAndReadFile(filePath)
 	if err != nil {
 		return err
@@ -86,21 +159,20 @@ func translateFile(ctx context.Context, filePath string, limiter *rate.Limiter) 
 		return nil
 	}
 
-	var modified bool
 	needToBeTranslateEls.Each(func(i int, contentEl *goquery.Selection) {
 		select {
 		case <-ctx.Done():
 			return
 		default:
-			if translated := translateElement(ctx, i, contentEl, needToBeTranslateEls.Length(), limiter); translated {
-				modified = true
+			elementChan <- elementToTranslate{
+				filePath:      filePath,
+				contentEl:     contentEl,
+				doc:           doc,
+				totalElements: needToBeTranslateEls.Length(),
+				index:         i,
 			}
 		}
 	})
-
-	if modified {
-		return writeContentToFile(filePath, doc)
-	}
 
 	return nil
 }
@@ -122,62 +194,86 @@ func ensureUTF8Charset(doc *goquery.Document) {
 	}
 }
 
-func translateElement(ctx context.Context, i int, contentEl *goquery.Selection, totalElements int, limiter *rate.Limiter) bool {
+func translateElement(ctx context.Context, element elementToTranslate, anthropicTranslator translator.Translator, limiter *rate.Limiter) bool {
 	if ctx.Err() != nil {
 		return false
 	}
 
-	// Wait for rate limiter
-	if err := limiter.Wait(ctx); err != nil {
-		fmt.Printf("Rate limiter error: %v\n", err)
-		return false
-	}
-
-	contentID := contentEl.AttrOr(util.ContentIdKey, "")
-
-	htmlToTranslate, err := contentEl.Html()
+	contentID := element.contentEl.AttrOr(util.ContentIdKey, "")
+	htmlToTranslate, err := element.contentEl.Html()
 	if err != nil || len(htmlToTranslate) <= 1 {
 		return false
 	}
 
-	anthropicTranslator, err := translator.GetAnthropicTranslator(nil)
-	if err != nil {
-		fmt.Printf("\t\tError getting translator: %v\n", err)
-		return false
-	}
-	translatedContent, err := anthropicTranslator.Translate(ctx, htmlToTranslate, sourceLanguage, targetLanguage)
+	translatedContent, err := retryTranslate(ctx, anthropicTranslator, limiter, htmlToTranslate, sourceLanguage, targetLanguage)
 	if err != nil {
 		fmt.Printf("\t\tTranslation error: %v\n", err)
-
-		if errors.Is(err, translator.ErrRateLimitExceeded) {
-			return false
-		}
 		return false
 	}
 
-	if translatedContent == htmlToTranslate {
-		contentEl.RemoveAttr(util.ContentIdKey)
+	if !isTranslationValid(htmlToTranslate, translatedContent) {
+		fmt.Printf("\t\tInvalid translation for: %s\n", contentID)
 		return false
 	}
 
-	if countWords(translatedContent) > countWords(htmlToTranslate)*3 {
-		fmt.Printf("\t\tTranslation is not good: %s\n", contentID)
-		fmt.Printf("\t\tTranslation: %s\n", translatedContent)
-		return false
-	}
-
-	if isHtmlDifferent(htmlToTranslate, translatedContent) {
-		fmt.Printf("\t\tTranslation struct is not good: %s\n", contentID)
-		fmt.Printf("\t\tTranslation: %s\n", translatedContent)
-		return false
-	}
-
-	if err = manipulateHTML(contentEl, targetLanguage, translatedContent); err != nil {
+	if err = manipulateHTML(element.contentEl, targetLanguage, translatedContent); err != nil {
 		fmt.Printf("HTML manipulation error: %v\n", err)
 		return false
 	}
 
-	fmt.Printf("\t%d/%d: %s\n", i+1, totalElements, contentID)
+	return true
+}
+
+func retryTranslate(ctx context.Context, t translator.Translator, limiter *rate.Limiter, content, sourceLang, targetLang string) (string, error) {
+	maxRetries := 3
+	baseDelay := time.Second
+
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		select {
+		case <-ctx.Done():
+			return "", ctx.Err()
+		default:
+			// Wait for rate limiter
+			if err := limiter.Wait(ctx); err != nil {
+				return "", fmt.Errorf("rate limiter error: %w", err)
+			}
+
+			translatedContent, err := t.Translate(ctx, content, sourceLang, targetLang)
+			if err == nil {
+				return translatedContent, nil
+			}
+
+			if errors.Is(err, translator.ErrRateLimitExceeded) {
+				// For rate limit errors, wait longer before retrying
+				time.Sleep(calculateBackoff(attempt, baseDelay*10))
+			} else {
+				// For other errors, use normal backoff
+				time.Sleep(calculateBackoff(attempt, baseDelay))
+			}
+		}
+	}
+
+	return "", fmt.Errorf("max retries reached")
+}
+
+func calculateBackoff(attempt int, baseDelay time.Duration) time.Duration {
+	backoff := float64(baseDelay) * math.Pow(2, float64(attempt))
+	jitter := rand.Float64() * float64(baseDelay)
+	return time.Duration(backoff + jitter)
+}
+
+func isTranslationValid(original, translated string) bool {
+	if translated == original {
+		return false
+	}
+
+	if countWords(translated) > countWords(original)*3 {
+		return false
+	}
+
+	if isHtmlDifferent(original, translated) {
+		return false
+	}
 
 	return true
 }
