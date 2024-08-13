@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.5.1](https://github.com/nguyenvanduocit/epubtrans/compare/v2.5.0...v2.5.1) (2024-08-13)
+
+
+### Bug Fixes
+
+* update error message ([0a292f9](https://github.com/nguyenvanduocit/epubtrans/commit/0a292f985763eff2f759521f7b55082fb290e6d4))
+
 ## [2.5.0](https://github.com/nguyenvanduocit/epubtrans/compare/v2.4.0...v2.5.0) (2024-08-13)
 
 
