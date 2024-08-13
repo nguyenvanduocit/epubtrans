@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.5.0](https://github.com/nguyenvanduocit/epubtrans/compare/v2.4.0...v2.5.0) (2024-08-13)
+
+
+### Features
+
+* **translator:** improve translation process and error handling ([3f0fd66](https://github.com/nguyenvanduocit/epubtrans/commit/3f0fd66fcc5f1f1a8c8ab83939935aad935fdf6a))
+
 ## [2.4.0](https://github.com/nguyenvanduocit/epubtrans/compare/v2.3.1...v2.4.0) (2024-08-12)
 
 
