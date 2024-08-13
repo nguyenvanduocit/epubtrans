@@ -247,6 +247,7 @@ func retryTranslate(ctx context.Context, t translator.Translator, limiter *rate.
 				// For rate limit errors, wait longer before retrying
 				time.Sleep(calculateBackoff(attempt, baseDelay*10))
 			} else {
+				fmt.Println("Translationg error: ", err)
 				// For other errors, use normal backoff
 				time.Sleep(calculateBackoff(attempt, baseDelay))
 			}
