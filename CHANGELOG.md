@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.6.0](https://github.com/nguyenvanduocit/epubtrans/compare/v2.5.1...v2.6.0) (2024-08-19)
+
+
+### Features
+
+* Update translation logic and metadata tracking ([e4342e4](https://github.com/nguyenvanduocit/epubtrans/commit/e4342e41e0b29408579b5c58cde11aa387ba859e))
+
 ## [2.5.1](https://github.com/nguyenvanduocit/epubtrans/compare/v2.5.0...v2.5.1) (2024-08-13)
 
 
