@@ -6,7 +6,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.9.2
 	github.com/dgraph-io/ristretto v0.1.1
 	github.com/gofiber/fiber/v2 v2.52.5
-	github.com/liushuangls/go-anthropic/v2 v2.3.1
+	github.com/liushuangls/go-anthropic/v2 v2.6.0
 	github.com/spf13/cobra v1.8.1
 	golang.org/x/net v0.27.0
 	golang.org/x/sync v0.1.0

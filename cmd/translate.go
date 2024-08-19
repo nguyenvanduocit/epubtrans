@@ -213,6 +213,8 @@ func translateElement(ctx context.Context, element elementToTranslate, anthropic
 
 	if !isTranslationValid(htmlToTranslate, translatedContent) {
 		fmt.Printf("\t\tInvalid translation for: %s\n", contentID)
+		fmt.Printf("\t\tOriginal: %s\n", htmlToTranslate)
+		fmt.Printf("\t\tTranslated: %s\n", translatedContent)
 		return false
 	}
 
@@ -244,12 +246,12 @@ func retryTranslate(ctx context.Context, t translator.Translator, limiter *rate.
 			}
 
 			if errors.Is(err, translator.ErrRateLimitExceeded) {
-				// For rate limit errors, wait longer before retrying
 				time.Sleep(calculateBackoff(attempt, baseDelay*10))
 			} else {
-				// For other errors, use normal backoff
 				time.Sleep(calculateBackoff(attempt, baseDelay))
 			}
+
+			fmt.Println("Failed to translate, retrying...", err)
 		}
 	}
 
@@ -264,10 +266,10 @@ func calculateBackoff(attempt int, baseDelay time.Duration) time.Duration {
 
 func isTranslationValid(original, translated string) bool {
 	if translated == original {
-		return false
+		return true
 	}
 
-	if countWords(translated) > countWords(original)*3 {
+	if countWords(translated) > countWords(original)*5 {
 		return false
 	}
 

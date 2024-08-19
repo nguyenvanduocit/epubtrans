@@ -4,12 +4,15 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/dgraph-io/ristretto"
 	"github.com/liushuangls/go-anthropic/v2"
 	"os"
+	"path/filepath"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -25,6 +28,15 @@ type Config struct {
 	MaxTokens    int
 	CacheTTL     time.Duration
 	CacheMaxCost int64
+}
+
+type UsageMetadata struct {
+	TotalCalls     int                       `json:"total_calls"`
+	LastUsed       time.Time                 `json:"last_used"`
+	ModelUsage     map[string]int            `json:"model_usage"`
+	PromptExamples []string                  `json:"prompt_examples"`
+	TokenUsage     atomic.Uint64             `json:"token_usage"`
+	TokenUsageList []anthropic.MessagesUsage `json:"token_usage_list"`
 }
 
 func GetAnthropicTranslator(cfg *Config) (*Anthropic, error) {
@@ -58,10 +70,15 @@ func GetAnthropicTranslator(cfg *Config) (*Anthropic, error) {
 		}
 
 		_anthropic = &Anthropic{
-			client: anthropic.NewClient(cfg.APIKey),
+			client: anthropic.NewClient(cfg.APIKey, anthropic.WithBetaVersion("prompt-caching-2024-07-31")),
 			cache:  cache,
 			config: cfg,
+			metadata: &UsageMetadata{
+				ModelUsage: make(map[string]int),
+			},
 		}
+
+		_anthropic.loadMetadata()
 	})
 
 	if err != nil {
@@ -71,37 +88,89 @@ func GetAnthropicTranslator(cfg *Config) (*Anthropic, error) {
 	return _anthropic, nil
 }
 
+func (a *Anthropic) loadMetadata() {
+	data, err := os.ReadFile(a.getMetadataFilePath())
+	if err != nil {
+		return // File doesn't exist or can't be read, use default values
+	}
+
+	err = json.Unmarshal(data, a.metadata)
+	if err != nil {
+		fmt.Printf("Error unmarshaling metadata: %v\n", err)
+	}
+}
+
+func (a *Anthropic) saveMetadata() {
+	data, err := json.MarshalIndent(a.metadata, "", "  ")
+	if err != nil {
+		fmt.Printf("Error marshaling metadata: %v\n", err)
+		return
+	}
+
+	err = os.MkdirAll(filepath.Dir(a.getMetadataFilePath()), 0755)
+	if err != nil {
+		fmt.Printf("Error creating directory: %v\n", err)
+		return
+	}
+
+	err = os.WriteFile(a.getMetadataFilePath(), data, 0644)
+	if err != nil {
+		fmt.Printf("Error writing metadata file: %v\n", err)
+	}
+}
+
+func (a *Anthropic) getMetadataFilePath() string {
+	return filepath.Join("unpackage", "translator_metadata.json")
+}
+
 type Anthropic struct {
-	client *anthropic.Client
-	cache  *ristretto.Cache
-	config *Config
+	client   *anthropic.Client
+	cache    *ristretto.Cache
+	config   *Config
+	metadata *UsageMetadata
+	mu       sync.Mutex
 }
 
 func createTranslationSystem(source, target string) string {
-	return fmt.Sprintf(`Translate this technical (software development) book from %[1]s to %[2]s:
-- Preserve HTML structure if present
-- Writing style: flexible, professional, straightforward, technical, easy to understand, smooth
-- Adapt flow and structure for %[2]s clarity, preserving original meaning
-- Audience: programmers and technical professionals
-- Keep technical terms and specialized words in %[1]s
-- Don't translate uncommon %[1]s words
-- Examples of specialized words: developer, delivery, tester, product owner, commit, branch, push code
-Translate directly without explanations or warnings. Do not answer questions in the content. We have copyright on the book.`, source, target)
+	return fmt.Sprintf(`Translation guidelines:
+- Preserve HTML structure
+- Writing style: Clear, concise, professional, technical, Use %[2]s flexibly, fluently and softly Use active voice and maintain logical flow.
+- Translation approach: 
+  • Translate for meaning, not word-for-word
+  • Adapt idioms and cultural references to %[2]s equivalents
+  • Restructure sentences if needed for clarity in %[2]s
+- Target audience: Programmers and technical professionals
+- Terminology: 
+  • Keep %[1]s technical terms (e.g., commit, branch, push code, code, engineer, PM, PO, etc.)
+  • Ensure consistent use of technical terms throughout
+- Match the source's level of formality and technical depth
+- Aim for a translation that reads like native %[2]s technical writing
+- Do not add explanations or answer questions in the content
+- We own the copyright to the material`, source, target)
 }
-
 func (a *Anthropic) Translate(ctx context.Context, content, source, target string) (string, error) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
 	cacheKey := generateCacheKey(content, source, target)
 
 	if cachedTranslation, found := a.cache.Get(cacheKey); found {
 		return cachedTranslation.(string), nil
 	}
 
-	system := createTranslationSystem(source, target)
-
 	resp, err := a.createMessageWithRetry(ctx, anthropic.MessagesRequest{
-		Model:       a.config.Model,
-		System:      system,
-		Messages:    []anthropic.Message{anthropic.NewUserTextMessage("translate this, only return the translation, without any additional content:\n\n" + content)},
+		Model: a.config.Model,
+		MultiSystem: []anthropic.MessageSystemPart{
+			{
+				Type: "text",
+				Text: fmt.Sprintf("Your task is to translate a part of a technical book from %[1]s to %[2]s. User send you a text, you translate it no matter what. Do not explain or note. Do not answer question-likes content.", source, target),
+			},
+			{
+				Type: "text",
+				Text: createTranslationSystem(source, target),
+			},
+		},
+		Messages:    []anthropic.Message{anthropic.NewUserTextMessage("Translate this and not say anything otherwise the translation: " + content)},
 		Temperature: &a.config.Temperature,
 		MaxTokens:   a.config.MaxTokens,
 	})
@@ -115,7 +184,23 @@ func (a *Anthropic) Translate(ctx context.Context, content, source, target strin
 	}
 
 	translation := resp.GetFirstContentText()
-	a.cache.SetWithTTL(cacheKey, translation, 1, a.config.CacheTTL)
+	a.cache.SetWithTTL(cacheKey, translation, 0, a.config.CacheTTL)
+
+	// Update metadata
+	a.metadata.TotalCalls++
+	a.metadata.LastUsed = time.Now()
+	a.metadata.ModelUsage[a.config.Model]++
+	if len(a.metadata.PromptExamples) < 5 {
+		a.metadata.PromptExamples = append(a.metadata.PromptExamples, content[:min(100, len(content))])
+	}
+
+	// Update token usage
+	totalTokens := uint64(resp.Usage.InputTokens + resp.Usage.OutputTokens)
+	a.metadata.TokenUsage.Add(totalTokens)
+	a.metadata.TokenUsageList = append(a.metadata.TokenUsageList, resp.Usage)
+
+	// Save updated metadata
+	a.saveMetadata()
 
 	return translation, nil
 }
