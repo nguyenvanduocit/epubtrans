@@ -105,7 +105,7 @@ func worker(ctx context.Context, jobs <-chan string, results chan<- error, proce
 	}
 }
 
-var excludeRegex = regexp.MustCompile(`(?i)(preface|introduction|foreword|prologue|toc|table\s*of\s*contents|title|cover|copyright|colophon|dedication|acknowledgements?|about\s*the\s*author|bibliography|glossary|index|appendix|notes?|footnotes?|endnotes?|references|epub-meta|metadata|nav|ncx|opf|front\s*matter|back\s*matter|halftitle|frontispiece|epigraph|list\s*of\s*(figures|tables|illustrations)|copyright\s*page|series\s*page|reviews|praise\s*for|also\s*by\s*the\s*author|author\s*bio|publication\s*info|imprint|credits|permissions|disclaimer|errata|synopsis|summary)`)
+var excludeRegex = regexp.MustCompile(`(?i)(preface|introduction|foreword|prologue|toc|table\s*of\s*contents|title|cover|copyright|colophon|dedication|acknowledgements?|about\s*the\s*author|bibliography|glossary|index|appendix|notes?|footnotes?|endnotes?|references|epub-meta|metadata|nav|ncx|opf|front\s*matter|back\s*matter|halftitle|frontispiece|epigraph|list\s*of\s*(figures|tables|illustrations)|copyright\s*page|series\s*page|reviews|praise|also\s*by\s*the\s*author|author\s*bio|publication\s*info|imprint|credits|permissions|disclaimer|errata|synopsis|summary)`)
 
 // ShouldExcludeFile determines if a file should be excluded based on its name
 func ShouldExcludeFile(fileName string) bool {

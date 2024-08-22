@@ -134,7 +134,8 @@ type Anthropic struct {
 func createTranslationSystem(source, target string) string {
 	return fmt.Sprintf(`Translation guidelines:
 - Preserve HTML structure
-- Writing style: Clear, concise, professional, technical, Use %[2]s flexibly, fluently and softly Use active voice and maintain logical flow.
+- Writing style: Clear, concise, professional, technical, Use %[2]s flexibly, fluently and softly.
+- Use active voice and maintain logical flow.
 - Translation approach: 
   • Translate for meaning, not word-for-word
   • Adapt idioms and cultural references to %[2]s equivalents

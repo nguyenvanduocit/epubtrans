@@ -95,7 +95,7 @@ func runTranslate(cmd *cobra.Command, args []string) error {
 	anthropicTranslator, err := translator.GetAnthropicTranslator(&translator.Config{
 		APIKey:      os.Getenv("ANTHROPIC_KEY"),
 		Model:       cmd.Flag("model").Value.String(),
-		Temperature: 0.3,
+		Temperature: 0.7,
 		MaxTokens:   4096,
 	})
 	if err != nil {
