@@ -4,13 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/PuerkitoBio/goquery"
-	"github.com/liushuangls/go-anthropic/v2"
-	"github.com/nguyenvanduocit/epubtrans/pkg/processor"
-	"github.com/nguyenvanduocit/epubtrans/pkg/translator"
-	"github.com/nguyenvanduocit/epubtrans/pkg/util"
-	"github.com/spf13/cobra"
-	"golang.org/x/time/rate"
 	"math"
 	"math/rand"
 	"os"
@@ -19,6 +12,14 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/PuerkitoBio/goquery"
+	"github.com/liushuangls/go-anthropic/v2"
+	"github.com/nguyenvanduocit/epubtrans/pkg/processor"
+	"github.com/nguyenvanduocit/epubtrans/pkg/translator"
+	"github.com/nguyenvanduocit/epubtrans/pkg/util"
+	"github.com/spf13/cobra"
+	"golang.org/x/time/rate"
 )
 
 var (
@@ -192,6 +193,7 @@ func ensureUTF8Charset(doc *goquery.Document) {
 	if charset != "utf-8" {
 		doc.Find("head").AppendHtml(`<meta charset="utf-8">`)
 	}
+
 }
 
 func translateElement(ctx context.Context, element elementToTranslate, anthropicTranslator translator.Translator, limiter *rate.Limiter) bool {

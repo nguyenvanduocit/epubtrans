@@ -2,7 +2,7 @@
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/nguyenvanduocit/epubtrans/blob/main/scripts/epub-translator-colab.ipynb)
 
-This project aims to quickly translate epub books into Vietnamese, packaging the result as a bilingual book. It's designed to maintain the original text format while providing a rough translation.
+This project aims to quickly translate epub books into bilingual versions, packaging the result as a book with both the original text and the translation. It's designed to maintain the original text format while providing a rough translation.
 
 [Watch the tutorial video (Vietnamese)](https://youtu.be/9MspqDLPaxQ)
 
@@ -169,9 +169,17 @@ We welcome contributions to the Epub Translator project! Here's how you can help
 
 Please ensure your code adheres to the project's coding standards and include tests for new features.
 
+## Support the Project
+
+If you find Epub Translator useful, please consider supporting the project financially. Your contributions help maintain and improve the tool, ensuring its continued development and availability.
+
+You can support the project in the following ways:
+
+- [PayPal](https://paypal.me/duocnguyen)
+
 ## Limitations and Known Issues
 
-- The quality of translation depends on the Anthropic API and may not be perfect for all types of content.
+- The quality of translation depends on the Anthropic API and may not be perfect for all types of content or language pairs.
 - Large books may take a considerable amount of time to translate.
 
 For any issues or feature requests, please open an issue on the GitHub repository.
