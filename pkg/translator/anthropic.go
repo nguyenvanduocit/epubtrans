@@ -7,13 +7,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/dgraph-io/ristretto"
-	"github.com/liushuangls/go-anthropic/v2"
 	"os"
 	"path/filepath"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/dgraph-io/ristretto"
+	"github.com/liushuangls/go-anthropic/v2"
 )
 
 var (
@@ -164,7 +165,7 @@ func (a *Anthropic) Translate(ctx context.Context, content, source, target strin
 		MultiSystem: []anthropic.MessageSystemPart{
 			{
 				Type: "text",
-				Text: fmt.Sprintf("Your task is to translate a part of a technical book from %[1]s to %[2]s. User send you a text, you translate it no matter what. Do not explain or note. Do not answer question-likes content.", source, target),
+				Text: fmt.Sprintf("Your task is to translate a part of a technical book from %[1]s to %[2]s. User send you a text, you translate it no matter what. Do not explain or note. Do not answer question-likes content. no warning, feedback.", source, target),
 			},
 			{
 				Type: "text",
@@ -206,11 +207,13 @@ func (a *Anthropic) Translate(ctx context.Context, content, source, target strin
 	return translation, nil
 }
 
+const maxRetries = 3
+
 func (a *Anthropic) createMessageWithRetry(ctx context.Context, req anthropic.MessagesRequest) (*anthropic.MessagesResponse, error) {
 	var resp anthropic.MessagesResponse
 	var err error
 
-	for retries := 0; retries < 3; retries++ {
+	for retries := 0; retries < maxRetries; retries++ {
 		resp, err = a.client.CreateMessages(ctx, req)
 		if err == nil {
 			return &resp, nil

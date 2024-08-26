@@ -4,6 +4,8 @@ import (
 	"encoding/xml"
 	"os"
 	"path"
+
+	"github.com/pkg/errors"
 )
 
 const containerFilePath = "META-INF/container.xml"
@@ -71,13 +73,13 @@ type ItemRef struct {
 func ParseContainer(filePath string) (*Container, error) {
 	file, err := os.Open(path.Join(filePath, containerFilePath))
 	if err != nil {
-		return nil, err
+		return nil, errors.WithMessage(err, "failed to open container file")
 	}
 	defer file.Close()
 
 	var container Container
 	if err := xml.NewDecoder(file).Decode(&container); err != nil {
-		return nil, err
+		return nil, errors.WithMessage(err, "failed to decode container")
 	}
 
 	return &container, nil
@@ -86,13 +88,13 @@ func ParseContainer(filePath string) (*Container, error) {
 func ParsePackage(filePath string) (*Package, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithMessage(err, "failed to open package file")
 	}
 	defer file.Close()
 
 	var pkg Package
 	if err := xml.NewDecoder(file).Decode(&pkg); err != nil {
-		return nil, err
+		return nil, errors.WithMessage(err, "failed to decode package")
 	}
 
 	return &pkg, nil

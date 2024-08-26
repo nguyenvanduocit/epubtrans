@@ -5,14 +5,15 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"github.com/nguyenvanduocit/epubtrans/pkg/processor"
-	"github.com/spf13/cobra"
-	"golang.org/x/net/html"
 	"os"
 	"os/signal"
 	"runtime"
 	"strings"
 	"syscall"
+
+	"github.com/nguyenvanduocit/epubtrans/pkg/processor"
+	"github.com/spf13/cobra"
+	"golang.org/x/net/html"
 
 	"github.com/nguyenvanduocit/epubtrans/pkg/util"
 )
@@ -102,6 +103,7 @@ func markContentInFile(ctx context.Context, filePath string) error {
 
 	return nil
 }
+
 func processNode(n *html.Node) {
 	if n.Type == html.ElementNode {
 		// Skip if already marked

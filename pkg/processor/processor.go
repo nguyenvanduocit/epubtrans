@@ -3,10 +3,12 @@ package processor
 import (
 	"context"
 	"fmt"
-	"github.com/nguyenvanduocit/epubtrans/pkg/loader"
-	"golang.org/x/sync/errgroup"
 	"path/filepath"
 	"regexp"
+
+	"github.com/nguyenvanduocit/epubtrans/pkg/loader"
+	"github.com/pkg/errors"
+	"golang.org/x/sync/errgroup"
 )
 
 // Config holds the configuration for the EPUB processor
@@ -23,7 +25,7 @@ type EpubItemProcessor func(ctx context.Context, filePath string) error
 func ProcessEpub(ctx context.Context, unzipPath string, cfg Config, processor EpubItemProcessor) error {
 	container, err := loader.ParseContainer(unzipPath)
 	if err != nil {
-		return fmt.Errorf("failed to parse container: %w", err)
+		return errors.Wrap(err, "failed to load EPUB container")
 	}
 
 	containerFileAbsPath := filepath.Join(unzipPath, container.Rootfile.FullPath)
