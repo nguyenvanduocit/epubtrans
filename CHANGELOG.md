@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.7.0](https://github.com/nguyenvanduocit/epubtrans/compare/v2.6.0...v2.7.0) (2024-08-26)
+
+
+### Features
+
+* improve ([32e8543](https://github.com/nguyenvanduocit/epubtrans/commit/32e8543f70961cad5b245e76de77fd9ff92f1950))
+* **translation:** enhance translation system and add metadata tracking ([e6a22b4](https://github.com/nguyenvanduocit/epubtrans/commit/e6a22b41f3d45e03d23b7d9680da7ad90e9ca1fb))
+
 ## [2.6.0](https://github.com/nguyenvanduocit/epubtrans/compare/v2.5.1...v2.6.0) (2024-08-19)
 
 
