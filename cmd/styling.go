@@ -3,23 +3,25 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"github.com/nguyenvanduocit/epubtrans/pkg/processor"
-	"github.com/nguyenvanduocit/epubtrans/pkg/util"
-	"github.com/spf13/cobra"
 	"os"
 	"os/signal"
 	"regexp"
 	"runtime"
 	"syscall"
+
+	"github.com/nguyenvanduocit/epubtrans/pkg/processor"
+	"github.com/nguyenvanduocit/epubtrans/pkg/util"
+	"github.com/spf13/cobra"
 )
 
 var Styling = &cobra.Command{
 	Use:     "styling [unpackedEpubPath]",
-	Short:   "styling the content of an unpacked EPUB",
-	Example: "epubtrans styling path/to/unpacked/epub",
+	Short:   "Apply styling to the content of an unpacked EPUB",
+	Long:    `This command processes the HTML content of an unpacked EPUB file to apply specific styling options. You can choose to hide either the source or target language content, or display both. This is useful for customizing the appearance of the EPUB content for different audiences.`,
+	Example: "epubtrans styling path/to/unpacked/epub --hide source",
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) != 1 {
-			return fmt.Errorf("unpackedEpubPath is required")
+			return fmt.Errorf("unpackedEpubPath is required. Please provide the path to the unpacked EPUB directory.")
 		}
 
 		if err := util.ValidateEpubPath(args[0]); err != nil {
@@ -31,7 +33,7 @@ var Styling = &cobra.Command{
 			return fmt.Errorf("failed to get hide flag: %w", err)
 		}
 		if hide != "source" && hide != "target" && hide != "none" {
-			return fmt.Errorf("hide flag must be either 'source' or 'target'")
+			return fmt.Errorf("hide flag must be either 'source', 'target', or 'none'")
 		}
 		return nil
 	},

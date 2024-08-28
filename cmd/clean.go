@@ -15,8 +15,8 @@ import (
 
 var Clean = &cobra.Command{
 	Use:     "clean [unpackedEpubPath]",
-	Short:   "Clean the html files",
-	Long:    "Clean the html files by removing empty anchor and div tags",
+	Short:   "Clean the HTML files in the unpacked EPUB",
+	Long:    "This command cleans the HTML files by removing empty anchor and div tags. It should be called before any other commands like translate, styling, or mark to ensure the content is properly formatted.",
 	Example: "epubtrans clean path/to/unpacked/epub",
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) != 1 {

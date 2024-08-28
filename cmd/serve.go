@@ -4,11 +4,6 @@ import (
 	"bytes"
 	"encoding/xml"
 	"fmt"
-	"github.com/PuerkitoBio/goquery"
-	"github.com/gofiber/fiber/v2"
-	"github.com/nguyenvanduocit/epubtrans/pkg/loader"
-	"github.com/nguyenvanduocit/epubtrans/pkg/util"
-	"github.com/spf13/cobra"
 	"io"
 	"io/ioutil"
 	"log/slog"
@@ -18,15 +13,28 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+
+	"embed"
+
+	"github.com/PuerkitoBio/goquery"
+	"github.com/gofiber/fiber/v2"
+	"github.com/nguyenvanduocit/epubtrans/pkg/loader"
+	"github.com/nguyenvanduocit/epubtrans/pkg/util"
+	"github.com/spf13/cobra"
 )
 
+//go:embed assets/app.js assets/app.css
+var embeddedAssets embed.FS
+
 var Serve = &cobra.Command{
-	Use:     "serve [unpackedEpubPath]",
-	Short:   "serve the content of an unpacked EPUB as a web server",
-	Example: "epubtrans serve path/to/unpacked/epub",
+	Use:   "serve [unpackedEpubPath]",
+	Short: "Serve the content of an unpacked EPUB as a web server",
+	Long:  `This command starts a web server that serves the content of an unpacked EPUB file. You can access the EPUB content through your web browser. Make sure to provide the path to the unpacked EPUB directory.`,
+	Example: `epubtrans serve path/to/unpacked/epub
+		# This will start the server and serve the EPUB content at http://localhost:3000`,
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) != 1 {
-			return fmt.Errorf("unpackedEpubPath is required")
+			return fmt.Errorf("unpackedEpubPath is required. Please provide the path to the unpacked EPUB directory.")
 		}
 
 		return util.ValidateEpubPath(args[0])
@@ -129,7 +137,16 @@ func runServe(cmd *cobra.Command, args []string) error {
 
 	// Proxy route for assets
 	app.Get("/assets/:filename", func(c *fiber.Ctx) error {
+
 		filename := c.Params("filename")
+		if filename == "app.js" || filename == "app.css" {
+			content, err := embeddedAssets.ReadFile("assets/" + filename)
+			if err != nil {
+				return c.Status(fiber.StatusInternalServerError).SendString("Error fetching file")
+			}
+			return c.Send(content)
+		}
+
 		url := fmt.Sprintf("%s/%s/%s/assets/%s", githubRawContent, userRepo, branch, filename)
 
 		// Make request to GitHub

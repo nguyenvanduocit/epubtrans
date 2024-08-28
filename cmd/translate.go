@@ -28,13 +28,15 @@ var (
 )
 
 var Translate = &cobra.Command{
-	Use:     "translate [unpackedEpubPath]",
-	Short:   "Translate the content of an unpacked EPUB",
-	Long:    "Translate the content of an unpacked EPUB using the Anthropic API",
+	Use:   "translate [unpackedEpubPath]",
+	Short: "Translate the content of an unpacked EPUB file",
+	Long: `This command translates the content of an unpacked EPUB file using the Anthropic API. 
+It allows you to specify the source and target languages for the translation. 
+Make sure to provide the path to the unpacked EPUB directory and the desired languages.`,
 	Example: `epubtrans translate path/to/unpacked/epub --source "English" --target "Vietnamese"`,
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) != 1 {
-			return fmt.Errorf("unpackedEpubPath is required")
+			return fmt.Errorf("unpackedEpubPath is required. Please provide the path to the unpacked EPUB directory.")
 		}
 
 		return util.ValidateEpubPath(args[0])

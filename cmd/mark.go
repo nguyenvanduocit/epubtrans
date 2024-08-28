@@ -27,13 +27,14 @@ var blacklist = []string{
 	"script",
 	"style",
 	"template",
+	"svg",
+	"noscript",
 }
 
-// Mark represents the command for marking content in EPUB files
 var Mark = &cobra.Command{
 	Use:     "mark [epub_path]",
-	Short:   "Mark content in EPUB files",
-	Long:    "Mark content in EPUB files by adding a unique ID to each content node",
+	Short:   "Add unique identifiers to content nodes in EPUB files",
+	Long:    "This command marks content in EPUB files by adding a unique ID to each content node, facilitating easier reference and manipulation of the content.",
 	Example: "epubtrans mark path/to/unpacked/epub",
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) != 1 {

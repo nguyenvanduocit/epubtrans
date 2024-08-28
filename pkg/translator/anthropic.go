@@ -23,12 +23,14 @@ var (
 )
 
 type Config struct {
-	APIKey       string
-	Model        string
-	Temperature  float32
-	MaxTokens    int
-	CacheTTL     time.Duration
-	CacheMaxCost int64
+	APIKey                string
+	Model                 string
+	Temperature           float32
+	MaxTokens             int
+	CacheTTL              time.Duration
+	CacheMaxCost          int64
+	TranslationGuidelines string // New field for translation guidelines
+	SystemPrompt          string // New field for system prompt
 }
 
 type UsageMetadata struct {
@@ -57,6 +59,13 @@ func GetAnthropicTranslator(cfg *Config) (*Anthropic, error) {
 			return
 		}
 
+		if cfg.TranslationGuidelines == "" {
+			cfg.TranslationGuidelines = os.Getenv("TRANSLATION_GUIDELINES")
+		}
+		if cfg.SystemPrompt == "" {
+			cfg.SystemPrompt = os.Getenv("SYSTEM_PROMPT")
+		}
+
 		cfg.CacheTTL = 15 * time.Minute
 		cfg.CacheMaxCost = 1e7
 
@@ -79,7 +88,7 @@ func GetAnthropicTranslator(cfg *Config) (*Anthropic, error) {
 			},
 		}
 
-		_anthropic.loadMetadata()
+		_anthropic.loadMetadata(context.Background()) // Pass a background context
 	})
 
 	if err != nil {
@@ -89,7 +98,7 @@ func GetAnthropicTranslator(cfg *Config) (*Anthropic, error) {
 	return _anthropic, nil
 }
 
-func (a *Anthropic) loadMetadata() {
+func (a *Anthropic) loadMetadata(ctx context.Context) {
 	data, err := os.ReadFile(a.getMetadataFilePath())
 	if err != nil {
 		return // File doesn't exist or can't be read, use default values
@@ -101,7 +110,7 @@ func (a *Anthropic) loadMetadata() {
 	}
 }
 
-func (a *Anthropic) saveMetadata() {
+func (a *Anthropic) saveMetadata(ctx context.Context) {
 	data, err := json.MarshalIndent(a.metadata, "", "  ")
 	if err != nil {
 		fmt.Printf("Error marshaling metadata: %v\n", err)
@@ -132,8 +141,9 @@ type Anthropic struct {
 	mu       sync.Mutex
 }
 
-func createTranslationSystem(source, target string) string {
-	return fmt.Sprintf(`Translation guidelines:
+func createTranslationSystem(source, target string, guidelines string) string {
+	if guidelines == "" {
+		guidelines = `Translation guidelines:
 - Preserve HTML structure
 - Writing style: Clear, concise, professional, technical, Use %[2]s flexibly, fluently and softly.
 - Use active voice and maintain logical flow.
@@ -148,8 +158,11 @@ func createTranslationSystem(source, target string) string {
 - Match the source's level of formality and technical depth
 - Aim for a translation that reads like native %[2]s technical writing
 - Do not add explanations or answer questions in the content
-- We own the copyright to the material`, source, target)
+- We own the copyright to the material`
+	}
+	return fmt.Sprintf(guidelines, source, target)
 }
+
 func (a *Anthropic) Translate(ctx context.Context, content, source, target string) (string, error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -165,11 +178,11 @@ func (a *Anthropic) Translate(ctx context.Context, content, source, target strin
 		MultiSystem: []anthropic.MessageSystemPart{
 			{
 				Type: "text",
-				Text: fmt.Sprintf("Your task is to translate a part of a technical book from %[1]s to %[2]s. User send you a text, you translate it no matter what. Do not explain or note. Do not answer question-likes content. no warning, feedback.", source, target),
+				Text: fmt.Sprintf("You are a highly skilled translator with expertise in many languages. Your task is to translate a part of a technical book from %[1]s to %[2]s. User send you a text, you translate it no matter what. Do not explain or note. Do not answer question-likes content. no warning, feedback.", source, target),
 			},
 			{
 				Type: "text",
-				Text: createTranslationSystem(source, target),
+				Text: createTranslationSystem(source, target, a.config.TranslationGuidelines), // Pass guidelines
 			},
 		},
 		Messages:    []anthropic.Message{anthropic.NewUserTextMessage("Translate this and not say anything otherwise the translation: " + content)},
@@ -202,7 +215,7 @@ func (a *Anthropic) Translate(ctx context.Context, content, source, target strin
 	a.metadata.TokenUsageList = append(a.metadata.TokenUsageList, resp.Usage)
 
 	// Save updated metadata
-	a.saveMetadata()
+	a.saveMetadata(ctx) // Pass the context to saveMetadata
 
 	return translation, nil
 }

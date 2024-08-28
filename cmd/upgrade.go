@@ -8,20 +8,21 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/Masterminds/semver/v3"
-	"github.com/spf13/cobra"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/Masterminds/semver/v3"
+	"github.com/spf13/cobra"
 )
 
 var Upgrade = &cobra.Command{
 	Use:     "upgrade",
-	Short:   "Self update the tool",
-	Long:    "Check for updates and install the latest version of epubtrans",
+	Short:   "Self-update the epubtrans tool",
+	Long:    "Check for updates and install the latest version of the epubtrans tool. This command will verify if a newer version is available and prompt you to proceed with the update.",
 	Example: "epubtrans upgrade",
 	Version: "0.1.0",
 	RunE:    runSelfUpgrade,
