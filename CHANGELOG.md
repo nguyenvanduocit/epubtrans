@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.10.0](https://github.com/nguyenvanduocit/epubtrans/compare/v2.9.0...v2.10.0) (2024-09-09)
+
+
+### Features
+
+* **toc:** open table of contents links in new tab ([7108fa2](https://github.com/nguyenvanduocit/epubtrans/commit/7108fa2be9acc1013e328691944db6c4d844b9e0))
+
 ## [2.9.0](https://github.com/nguyenvanduocit/epubtrans/compare/v2.8.0...v2.9.0) (2024-09-09)
 
 
