@@ -296,7 +296,7 @@ func runServe(cmd *cobra.Command, args []string) error {
 		},
 	})
 
-	app.Patch("/api/translate", func(c *fiber.Ctx) error {
+	app.Patch("/api/update-translation", func(c *fiber.Ctx) error {
 		var req TranslateRequest
 		if err := c.BodyParser(&req); err != nil {
 			return c.Status(400).JSON(fiber.Map{"error": "Invalid request"})
@@ -375,7 +375,7 @@ func runServe(cmd *cobra.Command, args []string) error {
 		return c.JSON(pkg.Spine)
 	})
 
-	app.Post("/api/translate-ai", func(c *fiber.Ctx) error {
+	app.Post("/api/ai-translate", func(c *fiber.Ctx) error {
         var req TranslateAIRequest
         if err := c.BodyParser(&req); err != nil {
             return c.Status(400).JSON(fiber.Map{"error": "Invalid request"})

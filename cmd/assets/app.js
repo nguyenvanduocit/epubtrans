@@ -13,7 +13,7 @@ function enableContentEditable() {
 
 
 function updateTranslateContent(translationID, translationContent) {
-    fetch('/api/translate', {
+    fetch('/api/update-translation', {
         method: 'PATCH',
         headers: {
             'Content-Type': 'application/json',
@@ -69,7 +69,7 @@ function translateContent(contentId, translationID, button, instructions) {
     button.textContent = 'Translating...';
     button.classList.add('loading');
 
-    fetch('/api/translate-ai', {
+    fetch('/api/ai-translate', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
