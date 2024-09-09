@@ -1,9 +1,10 @@
 function enableContentEditable() {
     document.querySelectorAll('[data-translation-id]').forEach(element => {
-        const originalContent = element.innerHTML;
+        let originalContent = element.innerHTML;
         element.contentEditable = true;
         element.addEventListener('blur', function () {
             if (!isTranslating && this.innerHTML !== originalContent) {
+                originalContent = this.innerHTML;
             updateTranslateContent(this.dataset.translationId, this.innerHTML);
 }
         });

@@ -1,0 +1,37 @@
+{
+  "total_calls": 5,
+  "last_used": "2024-09-09T17:27:24.580752+07:00",
+  "model_usage": {
+    "claude-3-5-sonnet-20240620": 5
+  },
+  "prompt_examples": [
+    "BusVNext’s primary competitive advantage is its routing algorithm that takes a stab at solving a c",
+    "BusVNext’s primary competitive advantage is its routing algorithm that takes a stab at solving a c",
+    "Gigmaster is a ticket sales and distribution company. Its mobile app analyzes users’ music librari",
+    "Gigmaster’s users are conscious of their privacy. Hence, all users’ personal information is encr",
+    "BusVNext’s primary competitive advantage is its routing algorithm that takes a stab at solving a c"
+  ],
+  "token_usage": {},
+  "token_usage_list": [
+    {
+      "input_tokens": 496,
+      "output_tokens": 139
+    },
+    {
+      "input_tokens": 512,
+      "output_tokens": 138
+    },
+    {
+      "input_tokens": 458,
+      "output_tokens": 112
+    },
+    {
+      "input_tokens": 507,
+      "output_tokens": 157
+    },
+    {
+      "input_tokens": 488,
+      "output_tokens": 131
+    }
+  ]
+}
