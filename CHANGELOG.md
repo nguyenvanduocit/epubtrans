@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.9.0](https://github.com/nguyenvanduocit/epubtrans/compare/v2.8.0...v2.9.0) (2024-09-09)
+
+
+### Features
+
+* enhance translation instruction handling ([c6673e2](https://github.com/nguyenvanduocit/epubtrans/commit/c6673e26e17b2057340c054a969ade266db1aee7))
+
 ## [2.8.0](https://github.com/nguyenvanduocit/epubtrans/compare/v2.7.0...v2.8.0) (2024-09-09)
 
 
