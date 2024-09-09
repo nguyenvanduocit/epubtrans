@@ -411,7 +411,12 @@ func runServe(cmd *cobra.Command, args []string) error {
 			}
 		})
 
-		instructment := `previous translation:` + currentTranslatedContent + `\n` + req.Instructions
+		instructment := req.Instructions
+
+		if len(currentTranslatedContent) == 0{
+			instructment = `Previous translation:\n\n` + currentTranslatedContent + `\n\n` + instructment
+		}
+
 
 		translatedContent, err := translateWithAI(originalContent, instructment)
         if err != nil {
