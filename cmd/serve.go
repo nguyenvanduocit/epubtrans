@@ -107,7 +107,7 @@ func generateTOCHTML(navPoints []NavPoint, level int) string {
 	html.WriteString("<ul>")
 
 	for _, np := range navPoints {
-		html.WriteString(fmt.Sprintf("<li><a href=\"%s\">%s</a>", np.Content.Src, np.NavLabel.Text))
+		html.WriteString(fmt.Sprintf("<li><a target=\"_blank\" href=\"%s\">%s</a>", np.Content.Src, np.NavLabel.Text))
 		if len(np.NavPoints) > 0 {
 			html.WriteString(generateTOCHTML(np.NavPoints, level+1))
 		}
