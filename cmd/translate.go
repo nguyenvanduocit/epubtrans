@@ -99,7 +99,7 @@ func runTranslate(cmd *cobra.Command, args []string) error {
 		APIKey:      os.Getenv("ANTHROPIC_KEY"),
 		Model:       cmd.Flag("model").Value.String(),
 		Temperature: 0.7,
-		MaxTokens:   4096,
+		MaxTokens:   8192,
 	})
 	if err != nil {
 		return fmt.Errorf("error getting translator: %v", err)
@@ -244,7 +244,7 @@ func retryTranslate(ctx context.Context, t translator.Translator, limiter *rate.
 				return "", fmt.Errorf("rate limiter error: %w", err)
 			}
 
-			translatedContent, err := t.Translate(ctx, content, sourceLang, targetLang)
+			translatedContent, err := t.Translate(ctx, "", content, sourceLang, targetLang)
 			if err == nil {
 				return translatedContent, nil
 			}

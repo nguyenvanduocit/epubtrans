@@ -2,3 +2,20 @@ body{
     margin: 0 auto !important;
     max-width: 800px;
 }
+
+.translate-container {
+    display: flex;
+    align-items: center;
+    margin-top: 5px;
+}
+
+.translate-instructions {
+    flex-grow: 1;
+    margin-right: 5px;
+    padding: 2px 5px;
+    font-size: 0.8em;
+}
+
+.translate-button {
+    margin-left: 0;
+}

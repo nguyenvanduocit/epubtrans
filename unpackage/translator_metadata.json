@@ -1,0 +1,125 @@
+{
+  "total_calls": 27,
+  "last_used": "2024-09-09T17:18:23.577931+07:00",
+  "model_usage": {
+    "claude-3-5-sonnet-20240620": 27
+  },
+  "prompt_examples": [
+    "Khi tôi giảng dạy nội dung này trong các lớp học thiết kế hướng miền (domain-d",
+    "When I teach this content in domain-driven design classes, many students often ask: \u0026#34;Do we need ",
+    "Nếu bạn giống như tôi, bạn yêu thích việc viết code: giải quyết các vấn đề",
+    "If you\u0026#39;re like me, you love writing code: solving complex problems, coming up with elegant solut",
+    "Nếu bạn giống như tôi, bạn yêu thích viết code: giải quyết các vấn đề phức"
+  ],
+  "token_usage": {},
+  "token_usage_list": [
+    {
+      "input_tokens": 595,
+      "output_tokens": 114
+    },
+    {
+      "input_tokens": 406,
+      "output_tokens": 301
+    },
+    {
+      "input_tokens": 566,
+      "output_tokens": 114
+    },
+    {
+      "input_tokens": 405,
+      "output_tokens": 305
+    },
+    {
+      "input_tokens": 578,
+      "output_tokens": 115
+    },
+    {
+      "input_tokens": 384,
+      "output_tokens": 281
+    },
+    {
+      "input_tokens": 384,
+      "output_tokens": 282
+    },
+    {
+      "input_tokens": 343,
+      "output_tokens": 162
+    },
+    {
+      "input_tokens": 315,
+      "output_tokens": 117
+    },
+    {
+      "input_tokens": 336,
+      "output_tokens": 115
+    },
+    {
+      "input_tokens": 377,
+      "output_tokens": 160
+    },
+    {
+      "input_tokens": 324,
+      "output_tokens": 118
+    },
+    {
+      "input_tokens": 407,
+      "output_tokens": 347
+    },
+    {
+      "input_tokens": 416,
+      "output_tokens": 207
+    },
+    {
+      "input_tokens": 381,
+      "output_tokens": 177
+    },
+    {
+      "input_tokens": 393,
+      "output_tokens": 177
+    },
+    {
+      "input_tokens": 432,
+      "output_tokens": 341
+    },
+    {
+      "input_tokens": 772,
+      "output_tokens": 348
+    },
+    {
+      "input_tokens": 594,
+      "output_tokens": 191
+    },
+    {
+      "input_tokens": 605,
+      "output_tokens": 179
+    },
+    {
+      "input_tokens": 893,
+      "output_tokens": 358
+    },
+    {
+      "input_tokens": 604,
+      "output_tokens": 227
+    },
+    {
+      "input_tokens": 492,
+      "output_tokens": 141
+    },
+    {
+      "input_tokens": 671,
+      "output_tokens": 282
+    },
+    {
+      "input_tokens": 671,
+      "output_tokens": 281
+    },
+    {
+      "input_tokens": 710,
+      "output_tokens": 297
+    },
+    {
+      "input_tokens": 683,
+      "output_tokens": 299
+    }
+  ]
+}

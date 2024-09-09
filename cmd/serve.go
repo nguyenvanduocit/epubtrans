@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"encoding/xml"
 	"fmt"
 	"io"
@@ -18,7 +19,9 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gofiber/fiber/v2"
+	"github.com/liushuangls/go-anthropic/v2"
 	"github.com/nguyenvanduocit/epubtrans/pkg/loader"
+	"github.com/nguyenvanduocit/epubtrans/pkg/translator"
 	"github.com/nguyenvanduocit/epubtrans/pkg/util"
 	"github.com/spf13/cobra"
 )
@@ -120,6 +123,37 @@ const (
 	userRepo         = "nguyenvanduocit/epubtrans"
 	branch           = "main"
 )
+
+type TranslateAIRequest struct {
+    FilePath      string `json:"file_path"`
+    TranslationID string `json:"translation_id"`
+    ContentID     string `json:"content_id"`
+    Instructions  string `json:"instructions"`
+}
+
+// Add this function to call the AI translation service (you'll need to implement this)
+func translateWithAI(content string, instructions string) (string, error) {
+    ctx := context.Background()
+
+    // Create an Anthropic translator
+    anthropicTranslator, err := translator.GetAnthropicTranslator(&translator.Config{
+        APIKey:      os.Getenv("ANTHROPIC_KEY"),
+        Model:       anthropic.ModelClaude3Dot5Sonnet20240620, // You might want to make this configurable
+        Temperature: 0.7,
+        MaxTokens:   8192,
+    })
+    if err != nil {
+        return "", fmt.Errorf("error getting translator: %v", err)
+    }
+
+    // Translate the content
+    translatedContent, err := anthropicTranslator.Translate(ctx, instructions, content, "english", "vietnamese")
+    if err != nil {
+        return "", fmt.Errorf("translation error: %v", err)
+    }
+
+    return translatedContent, nil
+}
 
 func runServe(cmd *cobra.Command, args []string) error {
 	unpackedEpubPath := args[0]
@@ -340,6 +374,52 @@ func runServe(cmd *cobra.Command, args []string) error {
 
 		return c.JSON(pkg.Spine)
 	})
+
+	app.Post("/api/translate-ai", func(c *fiber.Ctx) error {
+        var req TranslateAIRequest
+        if err := c.BodyParser(&req); err != nil {
+            return c.Status(400).JSON(fiber.Map{"error": "Invalid request"})
+        }
+
+        filePath := path.Join(contentDirPath, req.FilePath)
+        content, err := os.ReadFile(filePath)
+        if err != nil {
+            return c.Status(500).JSON(fiber.Map{"error": "Failed to read file"})
+        }
+
+        doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(content)))
+        if err != nil {
+            return c.Status(500).JSON(fiber.Map{"error": "Failed to parse HTML"})
+        }
+
+        var originalContent string
+        doc.Find("[data-content-id]").Each(func(i int, s *goquery.Selection) {
+            if id, exists := s.Attr("data-content-id"); exists && id == req.ContentID {
+                originalContent, _ = s.Html()
+            }
+        })
+
+        if originalContent == "" {
+            return c.Status(404).JSON(fiber.Map{"error": "Translation ID not found"})
+        }
+
+		// get the current translated content
+		var currentTranslatedContent string
+		doc.Find("[data-translation-id]").Each(func(i int, s *goquery.Selection) {
+			if id, exists := s.Attr("data-translation-id"); exists && id == req.TranslationID {
+				currentTranslatedContent, _ = s.Html()
+			}
+		})
+
+		instructment := `previous translation:` + currentTranslatedContent + `\n` + req.Instructions
+
+		translatedContent, err := translateWithAI(originalContent, instructment)
+        if err != nil {
+            return c.Status(500).JSON(fiber.Map{"error": "Translation failed"})
+        }
+
+        return c.JSON(fiber.Map{"translated_content": translatedContent})
+    })
 
 	port := cmd.Flag("port").Value.String()
 

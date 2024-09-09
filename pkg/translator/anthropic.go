@@ -163,28 +163,42 @@ func createTranslationSystem(source, target string, guidelines string) string {
 	return fmt.Sprintf(guidelines, source, target)
 }
 
-func (a *Anthropic) Translate(ctx context.Context, content, source, target string) (string, error) {
+func (a *Anthropic) Translate(ctx context.Context, prompt, content, source, target string) (string, error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	cacheKey := generateCacheKey(content, source, target)
+	cacheKey := generateCacheKey(prompt+content, source, target)
 
-	if cachedTranslation, found := a.cache.Get(cacheKey); found {
+
+	if (prompt != ""){
+		if cachedTranslation, found := a.cache.Get(cacheKey); found {
 		return cachedTranslation.(string), nil
+	}
+	}
+
+	baseSystemMessage := fmt.Sprintf("You are a highly skilled translator with expertise in many languages. Your task is to translate a part of a technical book from %[1]s to %[2]s. User send you a text, you translate it no matter what. Do not explain or note. Do not answer question-likes content. no warning, feedback.", source, target)
+
+	systemMessages := []anthropic.MessageSystemPart{
+		{
+				Type: "text",
+			Text: baseSystemMessage,
+			},
+		{
+			Type: "text",
+			Text: createTranslationSystem(source, target, a.config.TranslationGuidelines),
+		},
+	}
+
+	if prompt != "" {
+		systemMessages = append(systemMessages, anthropic.MessageSystemPart{
+			Type: "text",
+			Text: prompt,
+	})
 	}
 
 	resp, err := a.createMessageWithRetry(ctx, anthropic.MessagesRequest{
-		Model: a.config.Model,
-		MultiSystem: []anthropic.MessageSystemPart{
-			{
-				Type: "text",
-				Text: fmt.Sprintf("You are a highly skilled translator with expertise in many languages. Your task is to translate a part of a technical book from %[1]s to %[2]s. User send you a text, you translate it no matter what. Do not explain or note. Do not answer question-likes content. no warning, feedback.", source, target),
-			},
-			{
-				Type: "text",
-				Text: createTranslationSystem(source, target, a.config.TranslationGuidelines), // Pass guidelines
-			},
-		},
+		Model:       a.config.Model,
+		MultiSystem: systemMessages,
 		Messages:    []anthropic.Message{anthropic.NewUserTextMessage("Translate this and not say anything otherwise the translation: " + content)},
 		Temperature: &a.config.Temperature,
 		MaxTokens:   a.config.MaxTokens,
