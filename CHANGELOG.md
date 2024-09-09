@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.8.0](https://github.com/nguyenvanduocit/epubtrans/compare/v2.7.0...v2.8.0) (2024-09-09)
+
+
+### Features
+
+* improve the eidtor ([b949086](https://github.com/nguyenvanduocit/epubtrans/commit/b949086fe86c8ee46193ee69e3b0992dad09d06e))
+
+
+### Bug Fixes
+
+* correct serve assest ([768735e](https://github.com/nguyenvanduocit/epubtrans/commit/768735e1ad5fba47dde882b804f257289fc9f306))
+* remove unused folder ([cf12268](https://github.com/nguyenvanduocit/epubtrans/commit/cf1226834bc5a38d22ef2ef6ab3716582e227017))
+* update originalContent on blur in enableContentEditable function ([8241aad](https://github.com/nguyenvanduocit/epubtrans/commit/8241aada33da27f41fc9480f0ccce8c9c8b7ada8))
+
 ## [2.7.0](https://github.com/nguyenvanduocit/epubtrans/compare/v2.6.0...v2.7.0) (2024-08-26)
 
 
