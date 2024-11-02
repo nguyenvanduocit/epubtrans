@@ -3,6 +3,7 @@ package translator
 import (
 	"context"
 	"crypto/sha256"
+	_ "embed"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -141,59 +142,21 @@ type Anthropic struct {
 	mu       sync.Mutex
 }
 
+// Replace the promptLib map with embedded content
+//go:embed prompts/psychology.txt
+var psychologyPrompt string
+
+//go:embed prompts/technical.txt
+var technicalPrompt string
+
+var promptLib = map[string]string{
+	"psychology": psychologyPrompt,
+	"technical":  technicalPrompt,
+}
+
 func createTranslationSystem(source, target, guidelines, bookName string) string {
 	if guidelines == "" {
-		guidelines = `You are a skilled translator who excels at making complex psychology concepts simple and accessible for everyday readers. Your task is to translate the psychology book "%[3]s" from %[1]s to %[2]s, focusing on creating an engaging and easy-to-understand version for general readers.
-
-Translation guidelines:
-
-1. Core principles:
-   - Explain like you're talking to a friend
-   - Use everyday language and examples
-   - Break down complex ideas into simple terms
-   - Focus on practical applications
-   - Make it relatable to daily life
-   - Do not give extra explanation for the title, section titles, or headings
-
-2. Writing style:
-   - Warm and conversational tone
-   - Short, clear sentences
-   - Simple words over technical terms
-
-3. Making concepts accessible:
-   - Replace technical terms with everyday words
-   - Use real-life examples and situations
-   - Connect ideas to common experiences
-   - Add helpful metaphors and comparisons
-
-4. Cultural relevance:
-   - Use local examples and situations
-   - Reference familiar cultural elements
-   - Include relatable daily scenarios
-   - Adapt examples to local context
-   - Use local expressions when appropriate
-
-5. Target audience:
-   - People with no psychology background
-   - Readers seeking self-help and personal growth
-   - Anyone interested in understanding themselves better
-   - People who prefer simple, practical advice
-   - Readers who avoid academic or technical books
-
-6. Making it practical:
-   - Focus on how to apply concepts
-   - Include everyday examples
-   - Connect to common life situations
-
-7. Language choices:
-   - Choose words a 12-year-old could understand
-   - Explain any necessary technical terms simply
-
-8. Sử dụng các thuật ngữ tâm lý học phổ biến trong tiếng việt, ví dụ:
-
-   - narcissism: ái kỷ
-
-Translate as if you're explaining to a friend who's curious about psychology but has no background in it. Focus on making the content engaging, practical, and immediately useful in daily life. The translation should feel like reading an interesting conversation rather than a textbook.`
+		guidelines = promptLib["technical"]
 	}
 	return fmt.Sprintf(guidelines, source, target, bookName)
 }

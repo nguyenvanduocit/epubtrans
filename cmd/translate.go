@@ -224,8 +224,8 @@ func processBatch(ctx context.Context, filePath string, batch translationBatch, 
 		return
 	}
 
-	fmt.Printf("Translating batch from file %s (segments: %d)\n", 
-		filePath, len(batch.elements))
+	fmt.Printf("\nTranslating batch from file %s (segments: %d; length: %d)\n", 
+		path.Base(filePath), len(batch.elements), getBatchLength(&batch))
 
 	// Combine contents with more distinct markers and instructions
 	var combinedContent strings.Builder
