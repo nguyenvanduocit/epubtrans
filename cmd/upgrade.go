@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/spf13/cobra"
@@ -36,6 +37,12 @@ type GithubRelease struct {
 	} `json:"assets"`
 }
 
+type VersionInfo struct {
+	Current *semver.Version
+	Latest  *semver.Version
+	Release *GithubRelease
+}
+
 func parseVersion(fullVersion string) (*semver.Version, error) {
 	parts := strings.SplitN(fullVersion, "-", 2)
 	if len(parts) < 1 {
@@ -46,42 +53,35 @@ func parseVersion(fullVersion string) (*semver.Version, error) {
 }
 
 func runSelfUpgrade(cmd *cobra.Command, args []string) error {
-	currentVersion, err := parseVersion(Root.Version)
-	if err != nil {
-		return fmt.Errorf("invalid current version: %w", err)
-	}
-
 	cmd.Println("Checking for updates...")
-	latestRelease, err := getLatestRelease()
+	
+	info, err := checkVersion(cmd)
 	if err != nil {
-		return fmt.Errorf("failed to check for updates: %w", err)
+		return err
 	}
 
-	latestVersion, err := semver.NewVersion(strings.TrimPrefix(latestRelease.TagName, "v"))
-	if err != nil {
-		return fmt.Errorf("invalid latest version: %w", err)
-	}
-
-	if !latestVersion.GreaterThan(currentVersion) {
+	if !info.Latest.GreaterThan(info.Current) {
 		cmd.Println("You are already running the latest version.")
 		return nil
 	}
 
-	cmd.Printf("Current version: %s\n", currentVersion)
-	cmd.Printf("New version available: %s\n", latestVersion)
-	cmd.Print("Do you want to update? (y/n): ")
-	var response string
-	fmt.Scanln(&response)
-	if strings.ToLower(response) != "y" {
+	cmd.Printf("Current version: %s\n", info.Current)
+	cmd.Printf("New version available: %s\n", info.Latest)
+
+	proceed, err := getUserConfirmation(cmd)
+	if err != nil {
+		return err
+	}
+	if !proceed {
 		cmd.Println("Upgrade cancelled.")
 		return nil
 	}
 
-	if err := downloadAndInstall(cmd, latestRelease); err != nil {
+	if err := downloadAndInstall(cmd, info.Release); err != nil {
 		return fmt.Errorf("failed to update: %w", err)
 	}
 
-	cmd.Println("Upgrade completed successfully. Please restart the application.")
+	cmd.Println("\nUpgrade completed successfully. Please restart the application.")
 	return nil
 }
 
@@ -337,16 +337,62 @@ func copyFile(src, dst string) error {
 }
 
 type ProgressBar struct {
-	total int64
+	total     int64
+	current   int64
+	lastPrint time.Time
 }
 
 func NewProgressBar(total int64) *ProgressBar {
-	return &ProgressBar{total: total}
+	return &ProgressBar{
+		total:     total,
+		lastPrint: time.Now(),
+	}
 }
 
 func (pb *ProgressBar) Update(current int64) {
-	// Simple progress bar implementation
-	// This can be improved with a more sophisticated progress bar library
-	percent := float64(current) / float64(pb.total) * 100
-	fmt.Printf("\rProgress: %.2f%%", percent)
+	pb.current = current
+	// Update progress at most every 100ms to avoid flooding terminal
+	if time.Since(pb.lastPrint) >= 100*time.Millisecond {
+		percent := float64(pb.current) / float64(pb.total) * 100
+		fmt.Printf("\rProgress: %.1f%% [%s]", percent, pb.getProgressBar())
+		pb.lastPrint = time.Now()
+	}
+}
+
+func (pb *ProgressBar) getProgressBar() string {
+	width := 30
+	progress := int(float64(pb.current) / float64(pb.total) * float64(width))
+	return strings.Repeat("=", progress) + strings.Repeat(" ", width-progress)
+}
+
+func checkVersion(cmd *cobra.Command) (*VersionInfo, error) {
+	info := &VersionInfo{}
+	var err error
+	
+	info.Current, err = parseVersion(Root.Version)
+	if err != nil {
+		return nil, fmt.Errorf("invalid current version: %w", err)
+	}
+
+	info.Release, err = getLatestRelease()
+	if err != nil {
+		return nil, fmt.Errorf("failed to check for updates: %w", err)
+	}
+
+	info.Latest, err = semver.NewVersion(strings.TrimPrefix(info.Release.TagName, "v"))
+	if err != nil {
+		return nil, fmt.Errorf("invalid latest version: %w", err)
+	}
+
+	return info, nil
+}
+
+func getUserConfirmation(cmd *cobra.Command) (bool, error) {
+	reader := bufio.NewReader(os.Stdin)
+	cmd.Print("Do you want to update? (y/n): ")
+	response, err := reader.ReadString('\n')
+	if err != nil {
+		return false, fmt.Errorf("failed to read user input: %w", err)
+	}
+	return strings.ToLower(strings.TrimSpace(response)) == "y", nil
 }

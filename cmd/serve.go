@@ -132,13 +132,13 @@ type TranslateAIRequest struct {
 }
 
 // Add this function to call the AI translation service (you'll need to implement this)
-func translateWithAI(content string, instructions string) (string, error) {
+func translateWithAI(content string, instructions string, bookTitle string) (string, error) {
     ctx := context.Background()
 
     // Create an Anthropic translator
     anthropicTranslator, err := translator.GetAnthropicTranslator(&translator.Config{
         APIKey:      os.Getenv("ANTHROPIC_KEY"),
-        Model:       anthropic.ModelClaude3Dot5Sonnet20240620, // You might want to make this configurable
+        Model:       string(anthropic.ModelClaude3Dot5SonnetLatest), // You might want to make this configurable
         Temperature: 0.7,
         MaxTokens:   8192,
     })
@@ -147,7 +147,7 @@ func translateWithAI(content string, instructions string) (string, error) {
     }
 
     // Translate the content
-    translatedContent, err := anthropicTranslator.Translate(ctx, instructions, content, "english", "vietnamese")
+    translatedContent, err := anthropicTranslator.Translate(ctx, instructions, content, "english", "vietnamese", bookTitle)
     if err != nil {
         return "", fmt.Errorf("translation error: %v", err)
     }
@@ -162,6 +162,23 @@ func runServe(cmd *cobra.Command, args []string) error {
 	if _, err := os.Stat(unpackedEpubPath); os.IsNotExist(err) {
 		return fmt.Errorf("the specified directory does not exist: %s", unpackedEpubPath)
 	}
+
+	// Parse the package to get book information
+	container, err := loader.ParseContainer(unpackedEpubPath)
+	if err != nil {
+		return err
+	}
+
+	opfPath := filepath.Join(unpackedEpubPath, container.Rootfile.FullPath)
+	pkg, err := loader.ParsePackage(opfPath)
+	if err != nil {
+		return fmt.Errorf("error parsing package: %v", err)
+	}
+
+	// Get the book title
+	bookTitle := pkg.Metadata.Title
+
+	slog.Info("Book title: " + bookTitle)
 
 	app := fiber.New(fiber.Config{
 		DisableStartupMessage: true,
@@ -201,11 +218,6 @@ func runServe(cmd *cobra.Command, args []string) error {
 		body, _ := io.ReadAll(resp.Body)
 		return c.Send(body)
 	})
-
-	container, err := loader.ParseContainer(unpackedEpubPath)
-	if err != nil {
-		return err
-	}
 
 	contentDirPath := path.Dir(path.Join(unpackedEpubPath, container.Rootfile.FullPath))
 
@@ -413,12 +425,11 @@ func runServe(cmd *cobra.Command, args []string) error {
 
 		instructment := req.Instructions
 
-		if len(currentTranslatedContent) == 0{
-			instructment = `Previous translation:\n\n` + currentTranslatedContent + `\n\n` + instructment
+		if len(currentTranslatedContent) > 0 {
+			instructment = fmt.Sprintf("Previous translation:\n\n%s\n\n%s", currentTranslatedContent, instructment)
 		}
 
-
-		translatedContent, err := translateWithAI(originalContent, instructment)
+		translatedContent, err := translateWithAI(originalContent, instructment, bookTitle)
         if err != nil {
             return c.Status(500).JSON(fiber.Map{"error": "Translation failed"})
         }

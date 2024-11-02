@@ -14,6 +14,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const (
+	defaultBufferSize = 32 * 1024 // 32KB
+	channelBufferSize = 100
+	defaultSuffix     = "-bilangual.epub"
+)
+
 var Pack = &cobra.Command{
 	Use:   "pack [unpackedEpubPath]",
 	Short: "Create an EPUB file from an unpacked directory",
@@ -43,10 +49,18 @@ func runPack(cmd *cobra.Command, args []string) error {
 
 func packFiles(srcDir string, outputPath string) error {
 	if outputPath == "" {
-		outputPath = getUniqueFilename(srcDir + "-bilangual.epub")
+		outputPath = getUniqueFilename(srcDir + defaultSuffix)
 	} else {
 		outputPath = getUniqueFilename(outputPath)
 	}
+
+	// Validate source directory
+	if info, err := os.Stat(srcDir); err != nil || !info.IsDir() {
+		return fmt.Errorf("invalid source directory: %w", err)
+	}
+
+	progress := &packingProgress{}
+
 	fmt.Printf("Creating zip file: %s\n", outputPath)
 
 	newZipFile, err := os.Create(outputPath)
@@ -58,11 +72,8 @@ func packFiles(srcDir string, outputPath string) error {
 	zipWriter := zip.NewWriter(newZipFile)
 	defer zipWriter.Close()
 
-	fileCount := int64(0)
-	totalSize := int64(0)
-
 	// Create a buffered channel for file info
-	fileInfoChan := make(chan fileInfo, 100)
+	fileInfoChan := make(chan fileInfo, channelBufferSize)
 
 	// Start a single goroutine to write to the zip file
 	var wg sync.WaitGroup
@@ -71,14 +82,16 @@ func packFiles(srcDir string, outputPath string) error {
 	go func() {
 		defer wg.Done()
 		for fi := range fileInfoChan {
-
-			err := addFileToZip(zipWriter, fi.path, fi.relPath, fi.info)
-			if err != nil {
+			if err := validateFile(fi.path, fi.info); err != nil {
 				writeErr = err
 				return
 			}
-			atomic.AddInt64(&fileCount, 1)
-			atomic.AddInt64(&totalSize, fi.info.Size())
+
+			if err := addFileToZip(zipWriter, fi, progress); err != nil {
+				writeErr = err
+				return
+			}
+
 			fmt.Printf("Added file: %s (%.2f KB)\n", fi.relPath, float64(fi.info.Size())/1024)
 		}
 	}()
@@ -114,8 +127,8 @@ func packFiles(srcDir string, outputPath string) error {
 	}
 
 	fmt.Printf("\nZip creation complete:\n")
-	fmt.Printf("Total files: %d\n", fileCount)
-	fmt.Printf("Total size: %.2f MB\n", float64(totalSize)/(1024*1024))
+	fmt.Printf("Total files: %d\n", progress.fileCount)
+	fmt.Printf("Total size: %.2f MB\n", float64(progress.totalSize)/(1024*1024))
 	fmt.Printf("Output file: %s\n", outputPath)
 
 	return nil
@@ -127,31 +140,42 @@ type fileInfo struct {
 	info    os.FileInfo
 }
 
-func addFileToZip(zipWriter *zip.Writer, filePath, relPath string, info os.FileInfo) error {
-	zipFileHeader, err := zip.FileInfoHeader(info)
+type packingProgress struct {
+	fileCount int64
+	totalSize int64
+	mu        sync.Mutex
+}
+
+func (p *packingProgress) update(size int64) {
+	atomic.AddInt64(&p.fileCount, 1)
+	atomic.AddInt64(&p.totalSize, size)
+}
+
+func addFileToZip(zipWriter *zip.Writer, fi fileInfo, progress *packingProgress) error {
+	zipFileHeader, err := zip.FileInfoHeader(fi.info)
 	if err != nil {
 		return fmt.Errorf("failed to create file header: %w", err)
 	}
-	zipFileHeader.Name = relPath
-	zipFileHeader.Method = chooseCompressionMethod(filePath)
+	zipFileHeader.Name = fi.relPath
+	zipFileHeader.Method = chooseCompressionMethod(fi.path)
 
 	writer, err := zipWriter.CreateHeader(zipFileHeader)
 	if err != nil {
 		return fmt.Errorf("failed to create zip entry: %w", err)
 	}
 
-	file, err := os.Open(filePath)
+	file, err := os.Open(fi.path)
 	if err != nil {
 		return fmt.Errorf("failed to open file: %w", err)
 	}
 	defer file.Close()
 
-	buf := make([]byte, 32*1024) // 32KB buffer
-	_, err = io.CopyBuffer(writer, file, buf)
-	if err != nil {
+	buf := make([]byte, defaultBufferSize)
+	if _, err := io.CopyBuffer(writer, file, buf); err != nil {
 		return fmt.Errorf("failed to write file to zip: %w", err)
 	}
 
+	progress.update(fi.info.Size())
 	return nil
 }
 
@@ -204,4 +228,14 @@ func getUniqueFilename(filename string) string {
 		}
 		counter++
 	}
+}
+
+func validateFile(path string, info os.FileInfo) error {
+	if info.Size() == 0 {
+		return fmt.Errorf("empty file detected: %s", path)
+	}
+	if strings.Contains(path, "..") {
+		return fmt.Errorf("potential directory traversal detected: %s", path)
+	}
+	return nil
 }

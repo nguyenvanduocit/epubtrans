@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"regexp"
 	"runtime"
 	"strings"
 	"syscall"
@@ -18,17 +19,17 @@ import (
 	"github.com/nguyenvanduocit/epubtrans/pkg/util"
 )
 
-var blacklist = []string{
-	"math",
-	"figure",
-	"pre",
-	"code",
-	"head",
-	"script",
-	"style",
-	"template",
-	"svg",
-	"noscript",
+var blacklist = map[string]bool{
+    "math":     true,
+    "figure":   true,
+    "pre":      true,
+    "code":     true,
+    "head":     true,
+    "script":   true,
+    "style":    true,
+    "template": true,
+    "svg":      true,
+    "noscript": true,
 }
 
 var Mark = &cobra.Command{
@@ -69,7 +70,14 @@ func runMark(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	workers, _ := cmd.Flags().GetInt("workers")
+	workers, err := cmd.Flags().GetInt("workers")
+	if err != nil {
+		return fmt.Errorf("getting workers flag: %w", err)
+	}
+
+	if workers <= 0 {
+		return fmt.Errorf("workers must be greater than 0")
+	}
 
 	return processor.ProcessEpub(ctx, unzipPath, processor.Config{
 		Workers:      workers,
@@ -79,6 +87,10 @@ func runMark(cmd *cobra.Command, args []string) error {
 }
 
 func markContentInFile(ctx context.Context, filePath string) error {
+	if filePath == "" {
+		return fmt.Errorf("filePath cannot be empty")
+	}
+
 	f, err := os.Open(filePath)
 	if err != nil {
 		return fmt.Errorf("opening file %s: %w", filePath, err)
@@ -105,6 +117,8 @@ func markContentInFile(ctx context.Context, filePath string) error {
 	return nil
 }
 
+const minContentLength = 2
+
 func processNode(n *html.Node) {
 	if n.Type == html.ElementNode {
 		// Skip if already marked
@@ -115,16 +129,14 @@ func processNode(n *html.Node) {
 		}
 
 		// Skip if blacklisted
-		for _, tag := range blacklist {
-			if n.Data == tag {
-				return
-			}
+		if blacklist[n.Data] {
+			return
 		}
 
 		if !isContainer(n) {
 			content := extractTextContent(n)
-			if util.IsEmptyOrWhitespace(content) || len(content) <= 1 || util.IsNumeric(content) {
-				fmt.Println("Skipping non-empty or non-numeric content: ", content)
+			if util.IsEmptyOrWhitespace(content) || len(content) <= minContentLength || util.IsNumeric(content) || isSpecialContent(content) {
+				fmt.Printf("Skipping content in <%s> tag: %q\n", n.Data, content)
 				return
 			} else {
 				// Mark this node
@@ -143,6 +155,12 @@ func processNode(n *html.Node) {
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
 		processNode(c)
 	}
+}
+
+var re = regexp.MustCompile(`^[*=\-_.,:;!?#\s]+$`)
+
+func isSpecialContent(content string) bool {
+	return re.MatchString(content)
 }
 
 func isContainer(n *html.Node) bool {

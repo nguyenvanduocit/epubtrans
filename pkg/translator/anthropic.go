@@ -48,9 +48,9 @@ func GetAnthropicTranslator(cfg *Config) (*Anthropic, error) {
 		if cfg == nil {
 			cfg = &Config{
 				APIKey:      os.Getenv("ANTHROPIC_KEY"),
-				Model:       anthropic.ModelClaude3Dot5Sonnet20240620,
+				Model:       string(anthropic.ModelClaude3Dot5SonnetLatest),
 				Temperature: 0.3,
-				MaxTokens:   1000,
+				MaxTokens:   8192,
 			}
 		}
 
@@ -141,51 +141,82 @@ type Anthropic struct {
 	mu       sync.Mutex
 }
 
-func createTranslationSystem(source, target string, guidelines string) string {
+func createTranslationSystem(source, target, guidelines, bookName string) string {
 	if guidelines == "" {
-		guidelines = `Translation guidelines:
-- Preserve HTML structure
-- Writing style: Clear, concise, professional, technical, Use %[2]s flexibly, fluently and softly.
-- Use active voice and maintain logical flow.
-- Translation approach: 
-  • Translate for meaning, not word-for-word
-  • Adapt idioms and cultural references to %[2]s equivalents
-  • Restructure sentences if needed for clarity in %[2]s
-- Target audience: Programmers and technical professionals
-- Terminology: 
-  • Keep %[1]s technical terms (e.g., commit, branch, push code, code, engineer, PM, PO, etc.)
-  • Ensure consistent use of technical terms throughout
-- Match the source's level of formality and technical depth
-- Aim for a translation that reads like native %[2]s technical writing
-- Do not add explanations or answer questions in the content
-- We own the copyright to the material`
+		guidelines = `You are a skilled translator who excels at making complex psychology concepts simple and accessible for everyday readers. Your task is to translate the psychology book "%[3]s" from %[1]s to %[2]s, focusing on creating an engaging and easy-to-understand version for general readers.
+
+Translation guidelines:
+
+1. Core principles:
+   - Explain like you're talking to a friend
+   - Use everyday language and examples
+   - Break down complex ideas into simple terms
+   - Focus on practical applications
+   - Make it relatable to daily life
+   - Do not give extra explanation for the title, section titles, or headings
+
+2. Writing style:
+   - Warm and conversational tone
+   - Short, clear sentences
+   - Simple words over technical terms
+
+3. Making concepts accessible:
+   - Replace technical terms with everyday words
+   - Use real-life examples and situations
+   - Connect ideas to common experiences
+   - Add helpful metaphors and comparisons
+
+4. Cultural relevance:
+   - Use local examples and situations
+   - Reference familiar cultural elements
+   - Include relatable daily scenarios
+   - Adapt examples to local context
+   - Use local expressions when appropriate
+
+5. Target audience:
+   - People with no psychology background
+   - Readers seeking self-help and personal growth
+   - Anyone interested in understanding themselves better
+   - People who prefer simple, practical advice
+   - Readers who avoid academic or technical books
+
+6. Making it practical:
+   - Focus on how to apply concepts
+   - Include everyday examples
+   - Connect to common life situations
+
+7. Language choices:
+   - Choose words a 12-year-old could understand
+   - Explain any necessary technical terms simply
+
+8. Sử dụng các thuật ngữ tâm lý học phổ biến trong tiếng việt, ví dụ:
+
+   - narcissism: ái kỷ
+
+Translate as if you're explaining to a friend who's curious about psychology but has no background in it. Focus on making the content engaging, practical, and immediately useful in daily life. The translation should feel like reading an interesting conversation rather than a textbook.`
 	}
-	return fmt.Sprintf(guidelines, source, target)
+	return fmt.Sprintf(guidelines, source, target, bookName)
 }
 
-func (a *Anthropic) Translate(ctx context.Context, prompt, content, source, target string) (string, error) {
+func (a *Anthropic) Translate(ctx context.Context, prompt, content, source, target, bookName string) (string, error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
 	cacheKey := generateCacheKey(prompt+content, source, target)
 
-
-	if (prompt != ""){
+	if prompt != "" {
 		if cachedTranslation, found := a.cache.Get(cacheKey); found {
-		return cachedTranslation.(string), nil
+			return cachedTranslation.(string), nil
+		}
 	}
-	}
-
-	baseSystemMessage := fmt.Sprintf("You are a highly skilled translator with expertise in many languages. Your task is to translate a part of a technical book from %[1]s to %[2]s. User send you a text, you translate it no matter what. Do not explain or note. Do not answer question-likes content. no warning, feedback.", source, target)
 
 	systemMessages := []anthropic.MessageSystemPart{
 		{
-				Type: "text",
-			Text: baseSystemMessage,
-			},
-		{
 			Type: "text",
-			Text: createTranslationSystem(source, target, a.config.TranslationGuidelines),
+			Text: createTranslationSystem(source, target, a.config.TranslationGuidelines, bookName),
+			CacheControl: &anthropic.MessageCacheControl{
+				Type: anthropic.CacheControlTypeEphemeral,
+			},
 		},
 	}
 
@@ -193,11 +224,11 @@ func (a *Anthropic) Translate(ctx context.Context, prompt, content, source, targ
 		systemMessages = append(systemMessages, anthropic.MessageSystemPart{
 			Type: "text",
 			Text: prompt,
-	})
+		})
 	}
 
 	resp, err := a.createMessageWithRetry(ctx, anthropic.MessagesRequest{
-		Model:       a.config.Model,
+		Model:       anthropic.Model(a.config.Model),
 		MultiSystem: systemMessages,
 		Messages:    []anthropic.Message{anthropic.NewUserTextMessage("Translate this and not say anything otherwise the translation: " + content)},
 		Temperature: &a.config.Temperature,

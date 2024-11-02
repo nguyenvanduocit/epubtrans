@@ -26,13 +26,15 @@ var Unpack = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		zipPath := args[0]
 		unzipPath, err := util.GetUnzipDestination(zipPath)
-
-		cmd.Println("Unzipping to:", unzipPath)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to determine unzip destination: %w", err)
 		}
-		if err := unzipBook(zipPath, unzipPath); err != nil {
-			return err
+		cmd.Println("Unzipping to:", unzipPath)
+		if err := unzipBook(zipPath, unzipPath, func(format string, a ...interface{}) error {
+			cmd.Printf(format, a...)
+			return nil
+		}); err != nil {
+			return fmt.Errorf("failed to unzip book: %w", err)
 		}
 
 		cmd.Println("Unpacking completed successfully.")
@@ -40,51 +42,49 @@ var Unpack = &cobra.Command{
 	},
 }
 
-func unzipBook(source, destination string) error {
+func unzipBook(source, destination string, progress func(format string, a ...interface{}) error) error {
 	r, err := zip.OpenReader(source)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to open zip file: %w", err)
 	}
 	defer r.Close()
 
-	// Ensure the destination directory exists
 	if err := os.MkdirAll(destination, os.ModePerm); err != nil {
-		return err
+		return fmt.Errorf("failed to create destination directory: %w", err)
 	}
 
 	for _, f := range r.File {
-		fmt.Println("Unzipping file:", f.Name)
-		fpath := filepath.Join(destination, f.Name)
-
-		if f.FileInfo().IsDir() {
-			os.MkdirAll(fpath, os.ModePerm)
-			continue
-		}
-
-		if err := os.MkdirAll(filepath.Dir(fpath), os.ModePerm); err != nil {
-			return err
-		}
-
-		outFile, err := os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
-		if err != nil {
-			return err
-		}
-
-		rc, err := f.Open()
-		if err != nil {
-			outFile.Close()
-			return err
-		}
-
-		_, err = io.Copy(outFile, rc)
-
-		// Close the file without masking the previous error
-		outFile.Close()
-		rc.Close()
-
-		if err != nil {
-			return err
+		if err := extractFile(f, destination, progress); err != nil {
+			return fmt.Errorf("failed to extract file %s: %w", f.Name, err)
 		}
 	}
 	return nil
+}
+
+func extractFile(f *zip.File, destination string, progress func(format string, a ...interface{}) error) error {
+	progress("Unzipping file: %s\n", f.Name)
+	fpath := filepath.Join(destination, f.Name)
+
+	if f.FileInfo().IsDir() {
+		return os.MkdirAll(fpath, os.ModePerm)
+	}
+
+	if err := os.MkdirAll(filepath.Dir(fpath), os.ModePerm); err != nil {
+		return err
+	}
+
+	outFile, err := os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
+	if err != nil {
+		return err
+	}
+	defer outFile.Close()
+
+	rc, err := f.Open()
+	if err != nil {
+		return err
+	}
+	defer rc.Close()
+
+	_, err = io.Copy(outFile, rc)
+	return err
 }

@@ -44,14 +44,18 @@ type Manifest struct {
 	Items []Item `xml:"item" json:"items"`
 }
 
-// GetItemByID returns the item with the given ID
+// GetItemByID returns the item with the given ID.
+// Returns nil if no item is found or if id is empty.
 func (m Manifest) GetItemByID(id string) *Item {
-	for _, item := range m.Items {
-		if item.ID == id {
-			return &item
-		}
-	}
-	return nil
+    if id == "" {
+        return nil
+    }
+    for i := range m.Items {
+        if m.Items[i].ID == id {
+            return &m.Items[i]  // Return reference to slice element
+        }
+    }
+    return nil
 }
 
 type Item struct {
@@ -71,6 +75,10 @@ type ItemRef struct {
 }
 
 func ParseContainer(filePath string) (*Container, error) {
+	if filePath == "" {
+        return nil, errors.New("filePath cannot be empty")
+    }
+
 	file, err := os.Open(path.Join(filePath, containerFilePath))
 	if err != nil {
 		return nil, errors.WithMessage(err, "failed to open container file")
@@ -86,6 +94,10 @@ func ParseContainer(filePath string) (*Container, error) {
 }
 
 func ParsePackage(filePath string) (*Package, error) {
+	if filePath == "" {
+        return nil, errors.New("filePath cannot be empty")
+    }
+	
 	file, err := os.Open(filePath)
 	if err != nil {
 		return nil, errors.WithMessage(err, "failed to open package file")
