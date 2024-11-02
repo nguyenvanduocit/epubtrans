@@ -143,7 +143,6 @@ type fileInfo struct {
 type packingProgress struct {
 	fileCount int64
 	totalSize int64
-	mu        sync.Mutex
 }
 
 func (p *packingProgress) update(size int64) {
