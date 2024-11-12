@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.11.0](https://github.com/nguyenvanduocit/epubtrans/compare/v2.10.0...v2.11.0) (2024-11-02)
+
+
+### Features
+
+* impelement batch ([87142e9](https://github.com/nguyenvanduocit/epubtrans/commit/87142e9c1245e04c552deedb0ba60244b21ebad9))
+* improve by batch translate ([aee876d](https://github.com/nguyenvanduocit/epubtrans/commit/aee876d0cde10ca25f19ffee947cdfe393e954ec))
+* support multiple prompt ([1b25986](https://github.com/nguyenvanduocit/epubtrans/commit/1b25986daeb88813ea9c42d8dc095c0caa8337bf))
+
 ## [2.10.0](https://github.com/nguyenvanduocit/epubtrans/compare/v2.9.0...v2.10.0) (2024-09-09)
 
 
