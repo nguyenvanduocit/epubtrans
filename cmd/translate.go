@@ -35,7 +35,7 @@ var Translate = &cobra.Command{
 	Long: `This command translates the content of an unpacked EPUB file using the Anthropic API. 
 It allows you to specify the source and target languages for the translation. 
 Make sure to provide the path to the unpacked EPUB directory and the desired languages.`,
-	Example: `epubtrans translate path/to/unpacked/epub --source "English" --target "Vietnamese"`,
+	Example: `epubtrans translate path/to/unpacked/epub --source "English" --target "Chinese Simplified"`,
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) != 1 {
 			return fmt.Errorf("unpackedEpubPath is required. Please provide the path to the unpacked EPUB directory.")
@@ -48,7 +48,7 @@ Make sure to provide the path to the unpacked EPUB directory and the desired lan
 
 func init() {
 	Translate.Flags().StringVar(&sourceLanguage, "source", "English", "source language")
-	Translate.Flags().StringVar(&targetLanguage, "target", "Vietnamese", "target language")
+	Translate.Flags().StringVar(&targetLanguage, "target", "Chinese Simplified", "target language")
 	Translate.Flags().String("model", string(anthropic.ModelClaude3Dot5SonnetLatest), "Anthropic model to use")
 }
 

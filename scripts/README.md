@@ -4,7 +4,7 @@
 
 This project aims to quickly translate epub books into bilingual versions, packaging the result as a book with both the original text and the translation. It's designed to maintain the original text format while providing a rough translation.
 
-[Watch the tutorial video (Vietnamese)](https://youtu.be/9MspqDLPaxQ)
+[Watch the tutorial video (Chinese Simplified)](https://youtu.be/9MspqDLPaxQ)
 
 ## Table of Contents
 - [Quick Start](#quick-start)
@@ -27,7 +27,7 @@ This project aims to quickly translate epub books into bilingual versions, packa
    epubtrans unpack /path/to/book.epub
    epubtrans clean /path/to/unpacked-epub
    epubtrans mark /path/to/unpacked-epub
-   epubtrans translate /path/to/unpacked-epub --source English --target Vietnamese
+   epubtrans translate /path/to/unpacked-epub --source English --target Chinese Simplified
    epubtrans pack /path/to/unpacked
    ```
 
@@ -121,7 +121,7 @@ Flags:
 
 4. Translate marked content:
    ```bash
-   epubtrans translate /path/to/unpacked-epub --source English --target Vietnamese
+   epubtrans translate /path/to/unpacked-epub --source English --target Chinese Simplified
    ```
 
 5. (Optional) Apply styling:

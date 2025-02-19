@@ -11,7 +11,6 @@ function enableContentEditable() {
     });
 }
 
-
 function updateTranslateContent(translationID, translationContent) {
     fetch('/api/update-translation', {
         method: 'PATCH',
