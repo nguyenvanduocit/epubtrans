@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/nguyenvanduocit/epubtrans/cmd"
+	"github.com/dutchsteven/epubtrans/cmd"
 	"log/slog"
 	"os"
 )

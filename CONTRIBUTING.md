@@ -7,7 +7,7 @@ We welcome contributions to [Project Name]! This document outlines the process f
 1. Fork the repository on GitHub.
 2. Clone your fork locally:
    ```
-   git clone https://github.com/nguyenvanduocit/epubtrans.git
+   git clone https://github.com/dutchsteven/epubtrans.git
    ```
 3. Create a new branch for your feature or bug fix:
    ```

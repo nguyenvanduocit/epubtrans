@@ -3,7 +3,7 @@
 set -e
 
 get_latest_version() {
-    curl --silent "https://api.github.com/repos/nguyenvanduocit/epubtrans/releases/latest" |
+    curl --silent "https://api.github.com/repos/dutchsteven/epubtrans/releases/latest" |
     grep '"tag_name":' |
     sed -E 's/.*"([^"]+)".*/\1/'
 }
@@ -30,7 +30,7 @@ get_os_arch() {
 VERSION=$(get_latest_version)
 OS_ARCH=$(get_os_arch)
 
-DOWNLOAD_URL="https://github.com/nguyenvanduocit/epubtrans/releases/download/${VERSION}/epubtrans_${VERSION#v}_${OS_ARCH}.tar.gz"
+DOWNLOAD_URL="https://github.com/dutchsteven/epubtrans/releases/download/${VERSION}/epubtrans_${VERSION#v}_${OS_ARCH}.tar.gz"
 
 echo "Downloading epubtrans ${VERSION} for ${OS_ARCH}..."
 curl -L -o epubtrans.tar.gz "$DOWNLOAD_URL"

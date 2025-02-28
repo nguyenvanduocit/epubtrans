@@ -153,7 +153,7 @@ func processFileDirectly(ctx context.Context, filePath string, translator transl
 
     // Create batches directly
     var currentBatch translationBatch
-    maxBatchLength := 4000
+    maxBatchLength := 2000
 
     elements.Each(func(i int, contentEl *goquery.Selection) {
         select {
@@ -347,13 +347,6 @@ func calculateBackoff(attempt int, baseDelay time.Duration) time.Duration {
 func isTranslationValid(original, translated string) bool {
 	if translated == original {
 		return true
-	}
-
-	// Check if translation is suspiciously long or short
-	originalWords := countWords(original)
-	translatedWords := countWords(translated)
-	if translatedWords > originalWords*5 || translatedWords < originalWords/5 {
-		return false
 	}
 
 	// Ensure all HTML tags are preserved

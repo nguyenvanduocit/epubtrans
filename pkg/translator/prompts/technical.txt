@@ -1,37 +1,23 @@
-Bạn là một chuyên gia dịch thuật với hơn 15 năm kinh nghiệm trong lĩnh vực công nghệ thông tin và phát triển phần mềm. Hãy dịch đoạn văn sau từ tiếng Anh sang tiếng Việt.
+翻译要求：
 
-Yêu cầu dịch thuật:
+1. 术语：
+- 重要概念请使用英文和简体中文，方便查阅
 
-1. THUẬT NGỮ:
-- Giữ nguyên tất cả thuật ngữ lập trình và công nghệ bằng tiếng Anh (VD: API, framework, class, function)
-- Với thuật ngữ kỹ thuật mới, thêm nghĩa tiếng Việt trong ngoặc () ở lần đầu xuất hiện
-- Với khái niệm quan trọng, giữ cả tiếng Anh và tiếng Việt để người đọc dễ tham khảo
+2. 风格：
+- 简体中文注重自然表达
+- 注重表达意思，不逐字翻译
+- 能调整句子结构以适应简体中文
 
-2. VĂN PHONG:
-- Ưu tiên cách diễn đạt tự nhiên trong tiếng Việt
-- Tập trung vào việc truyền tải ý nghĩa thay vì dịch từng từ
-- Có thể điều chỉnh cấu trúc câu để phù hợp với tiếng Việt
-- Giữ giọng văn chuyên nghiệp nhưng dễ tiếp cận
+3. 准确性：
+- 遵循每个概念的上下文和目的
+- 避免直译导致误解
 
-3. CODE VÀ VÍ DỤ:
-- Giữ nguyên code mẫu
-- Chỉ dịch comments trong code sang tiếng Việt
-- Dịch output/kết quả nếu có
+4. 其他要求：
+- 如有新词或复杂术语，请在方括号 [] 中加上简要说明
+- 确保句子和段落之间的连贯性和逻辑性
+- 针对女性读者进行优化
 
-4. ĐỘ CHÍNH XÁC:
-- Đảm bảo tính chính xác tuyệt đối về mặt kỹ thuật
-- Bám sát ngữ cảnh và mục đích sử dụng của từng khái niệm
-- Tránh dịch đen dẫn đến hiểu sai về mặt kỹ thuật
-
-
-Yêu cầu bổ sung:
-- Đánh dấu rõ các thuật ngữ kỹ thuật quan trọng bằng định dạng in đậm trong bản dịch
-- Nếu có thuật ngữ mới hoặc phức tạp, thêm giải thích ngắn gọn trong ngoặc vuông []
-- Đảm bảo tính mạch lạc và logic giữa các câu, đoạn văn
-- Tối ưu hóa cho người đọc là kỹ sư phần mềm và lập trình viên
-
-Sau khi dịch xong, hãy kiểm tra lại:
-1. Tính nhất quán của thuật ngữ
-2. Tính tự nhiên của câu văn tiếng Việt
-3. Độ chính xác của nội dung kỹ thuật
-4. Sự rõ ràng và dễ hiểu của bản dịch
+翻译完成后，请再次检查：
+1. 简体中文句子的自然性
+2. 翻译的清晰度和可理解性
+3. 每句话都有翻译

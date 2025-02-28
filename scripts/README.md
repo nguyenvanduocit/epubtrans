@@ -1,6 +1,6 @@
 # Epub Translator
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/nguyenvanduocit/epubtrans/blob/main/scripts/epub-translator-colab.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/dutchsteven/epubtrans/blob/main/scripts/epub-translator-colab.ipynb)
 
 This project aims to quickly translate epub books into bilingual versions, packaging the result as a book with both the original text and the translation. It's designed to maintain the original text format while providing a rough translation.
 
@@ -44,9 +44,9 @@ This project aims to quickly translate epub books into bilingual versions, packa
 
 ```powershell
 $ErrorActionPreference = "Stop"
-$version = (Invoke-RestMethod "https://api.github.com/repos/nguyenvanduocit/epubtrans/releases/latest").tag_name
+$version = (Invoke-RestMethod "https://api.github.com/repos/dutchsteven/epubtrans/releases/latest").tag_name
 $arch = if ([Environment]::Is64BitOperatingSystem) { "amd64" } else { "386" }
-$url = "https://github.com/nguyenvanduocit/epubtrans/releases/download/${version}/epubtrans_${version.Substring(1)}_windows_${arch}.tar.gz"
+$url = "https://github.com/dutchsteven/epubtrans/releases/download/${version}/epubtrans_${version.Substring(1)}_windows_${arch}.tar.gz"
 Invoke-WebRequest -Uri $url -OutFile "epubtrans.tar.gz"
 tar -xzf epubtrans.tar.gz
 Move-Item -Force epubtrans.exe "C:\Windows\System32\"
@@ -59,7 +59,7 @@ Write-Host "epubtrans $version has been installed successfully!"
 Open a terminal and run:
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/nguyenvanduocit/epubtrans/main/scripts/install_unix.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/dutchsteven/epubtrans/main/scripts/install_unix.sh)"
 ```
 
 ### Verify Installation

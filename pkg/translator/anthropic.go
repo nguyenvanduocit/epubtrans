@@ -49,7 +49,7 @@ func GetAnthropicTranslator(cfg *Config) (*Anthropic, error) {
 		if cfg == nil {
 			cfg = &Config{
 				APIKey:      os.Getenv("ANTHROPIC_KEY"),
-				Model:       string(anthropic.ModelClaude3Dot5SonnetLatest),
+				Model:       string(anthropic.ModelClaude3Dot7SonnetLatest),
 				Temperature: 0.3,
 				MaxTokens:   8192,
 			}
