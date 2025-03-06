@@ -7,6 +7,7 @@ import (
 	"regexp"
 
 	"github.com/nguyenvanduocit/epubtrans/pkg/loader"
+	"github.com/nguyenvanduocit/epubtrans/pkg/util"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 )
@@ -60,7 +61,15 @@ func ProcessEpub(ctx context.Context, unzipPath string, cfg Config, processor Ep
 				fmt.Printf("Excluded file: %s\n", item.Href)
 				continue
 			}
+
 			filePath := filepath.Join(contentDir, item.Href)
+
+			// check the file content to see if we need to exclude it or not
+			if ShouldExcludeByTitle(filePath) {
+				fmt.Printf("Excluded file: %s\n", item.Href)
+				continue
+			}
+
 			select {
 			case jobs <- filePath:
 			case <-ctx.Done():
@@ -107,9 +116,20 @@ func worker(ctx context.Context, jobs <-chan string, results chan<- error, proce
 	}
 }
 
-var excludeRegex = regexp.MustCompile(`(?i)(preface|introduction|foreword|prologue|toc|table\s*of\s*contents|title|cover|copyright|colophon|dedication|acknowledgements?|about\s*the\s*author|bibliography|glossary|index|appendix|notes?|footnotes?|endnotes?|references|epub-meta|metadata|nav|ncx|opf|front\s*matter|back\s*matter|halftitle|frontispiece|epigraph|list\s*of\s*(figures|tables|illustrations)|copyright\s*page|series\s*page|reviews|praise|also\s*by\s*the\s*author|author\s*bio|publication\s*info|imprint|credits|permissions|disclaimer|errata|synopsis|summary|f\d+)`)
+var excludeRegex = regexp.MustCompile(`(?i)(preface|introduction|foreword|prologue|toc|table\s*of\s*contents|content|title|cover|copyright|colophon|dedication|acknowledgements?|about\s*the\s*author|bibliography|glossary|index|appendix|notes?|footnotes?|endnotes?|references|epub-meta|metadata|nav|ncx|opf|front\s*matter|back\s*matter|halftitle|frontispiece|epigraph|list\s*of\s*(figures|tables|illustrations)|figure|copyright\s*page|series\s*page|reviews|praise|also\s*by\s*the\s*author|author\s*bio|publication\s*info|imprint|credits|permissions|disclaimer|errata|synopsis|summary|f\d+)`)
 
 // ShouldExcludeFile determines if a file should be excluded based on its name
 func ShouldExcludeFile(fileName string) bool {
 	return excludeRegex.MatchString(fileName)
+}
+
+
+func ShouldExcludeByTitle(filePath string) bool {
+	content, err := util.OpenAndReadFile(filePath)
+	if err != nil {
+		return false
+	}
+
+	title := content.Find("title").Text()
+	return excludeRegex.MatchString(title)
 }
