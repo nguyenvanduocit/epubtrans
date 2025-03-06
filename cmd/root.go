@@ -20,4 +20,5 @@ func init() {
 	Root.AddCommand(Serve)
 	Root.AddCommand(Styling)
 	Root.AddCommand(Upgrade)
+	Root.AddCommand(Prepare)
 }
