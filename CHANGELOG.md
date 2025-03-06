@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.12.0](https://github.com/nguyenvanduocit/epubtrans/compare/v2.11.0...v2.12.0) (2025-03-06)
+
+
+### Features
+
+* add file utility functions ([1cf204a](https://github.com/nguyenvanduocit/epubtrans/commit/1cf204a844cea0bae9059d4425894259d201ae92))
+* add Gemini AI integration for generating translation guidelines ([a835d91](https://github.com/nguyenvanduocit/epubtrans/commit/a835d918e36ad65b2f20e38ae7bf08d24dabcc84))
+* add prepare command to automate EPUB preprocessing ([52d52a8](https://github.com/nguyenvanduocit/epubtrans/commit/52d52a8fc50edc3acb50117bd68e65c8a9502962))
+* enhance translation system with guidelines persistence and prompt presets ([2019f24](https://github.com/nguyenvanduocit/epubtrans/commit/2019f2465e789bec003d39102689836437769ee5))
+* improve translation prompts for psychology and technical content ([1e0ecc2](https://github.com/nguyenvanduocit/epubtrans/commit/1e0ecc293f6c4e8b56582eeab6e639421bfdb334))
+
 ## [2.11.0](https://github.com/nguyenvanduocit/epubtrans/compare/v2.10.0...v2.11.0) (2024-11-02)
 
 
