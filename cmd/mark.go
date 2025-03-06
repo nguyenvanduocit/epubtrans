@@ -72,7 +72,7 @@ func runMark(cmd *cobra.Command, args []string) error {
 
 	workers, err := cmd.Flags().GetInt("workers")
 	if err != nil {
-		return fmt.Errorf("getting workers flag: %w", err)
+		workers = runtime.NumCPU()
 	}
 
 	if workers <= 0 {

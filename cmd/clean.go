@@ -39,7 +39,10 @@ func runCleaner(cmd *cobra.Command, args []string) error {
 	unzipPath := args[0]
 	ctx := cmd.Context()
 
-	workers, _ := cmd.Flags().GetInt("workers")
+	workers, err := cmd.Flags().GetInt("workers")
+	if err != nil {
+		workers = runtime.NumCPU()
+	}
 
 	if err := util.ValidateEpubPath(unzipPath); err != nil {
 		return err
