@@ -1,6 +1,7 @@
 package translator
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	_ "embed"
@@ -8,6 +9,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"sync"
@@ -81,7 +84,7 @@ func GetAnthropicTranslator(cfg *Config) (*Anthropic, error) {
 		}
 
 		_anthropic = &Anthropic{
-			client: anthropic.NewClient(cfg.APIKey, anthropic.WithBetaVersion("prompt-caching-2024-07-31")),
+			client: anthropic.NewClient(cfg.APIKey, anthropic.WithBetaVersion(anthropic.BetaPromptCaching20240731),),
 			cache:  cache,
 			config: cfg,
 			metadata: &UsageMetadata{
@@ -154,20 +157,30 @@ var promptLib = map[string]string{
 	"technical":  technicalPrompt,
 }
 
-func createTranslationSystem(source, target, guidelines, bookName string) string {
+func createTranslationSystem(source, target, guidelines, bookName, promptPreset string) string {
 	if guidelines == "" {
-		guidelines = promptLib["technical"]
+		guidelines = promptLib[promptPreset]
 	}
 	return fmt.Sprintf(guidelines, source, target, bookName)
 }
 
-func (a *Anthropic) Translate(ctx context.Context, prompt, content, source, target, bookName string) (string, error) {
+func (a *Anthropic) Translate(ctx context.Context, promptPreset, content, source, target, bookName string) (string, error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	cacheKey := generateCacheKey(prompt+content, source, target)
+	// Create log entry
+	logEntry := struct {
+		Timestamp time.Time              `json:"timestamp"`
+		Request   anthropic.MessagesRequest `json:"request"`
+		Response  *anthropic.MessagesResponse `json:"response"`
+		Error     string                 `json:"error,omitempty"`
+	}{
+		Timestamp: time.Now(),
+	}
 
-	if prompt != "" {
+	cacheKey := generateCacheKey(promptPreset+content, source, target)
+
+	if promptPreset != "" {
 		if cachedTranslation, found := a.cache.Get(cacheKey); found {
 			return cachedTranslation.(string), nil
 		}
@@ -176,31 +189,30 @@ func (a *Anthropic) Translate(ctx context.Context, prompt, content, source, targ
 	systemMessages := []anthropic.MessageSystemPart{
 		{
 			Type: "text",
-			Text: createTranslationSystem(source, target, a.config.TranslationGuidelines, bookName),
+			Text: createTranslationSystem(source, target, a.config.TranslationGuidelines, bookName, promptPreset),
 			CacheControl: &anthropic.MessageCacheControl{
 				Type: anthropic.CacheControlTypeEphemeral,
 			},
 		},
 	}
-
-	if prompt != "" {
-		systemMessages = append(systemMessages, anthropic.MessageSystemPart{
-			Type: "text",
-			Text: prompt,
-		})
-	}
-
-	resp, err := a.createMessageWithRetry(ctx, anthropic.MessagesRequest{
+	req := anthropic.MessagesRequest{
 		Model:       anthropic.Model(a.config.Model),
 		MultiSystem: systemMessages,
-		Messages:    []anthropic.Message{anthropic.NewUserTextMessage("Translate this and not say anything otherwise the translation: " + content)},
+		Messages:    []anthropic.Message{anthropic.NewUserTextMessage(content)},
 		Temperature: &a.config.Temperature,
 		MaxTokens:   a.config.MaxTokens,
-	})
+	}
+	logEntry.Request = req
 
+	resp, err := a.createMessageWithRetry(ctx, req)
 	if err != nil {
+		logEntry.Error = err.Error()
+		a.writeLog(logEntry)
 		return "", fmt.Errorf("createMessageWithRetry: %w", err)
 	}
+
+	logEntry.Response = resp
+	a.writeLog(logEntry)
 
 	if len(resp.Content) == 0 {
 		return "", errors.New("no translation received")
@@ -257,7 +269,97 @@ func (a *Anthropic) createMessageWithRetry(ctx context.Context, req anthropic.Me
 	return nil, fmt.Errorf("max retries reached: %w", err)
 }
 
+type CountTokensResponse struct {
+    InputTokens int `json:"input_tokens"`
+}
+
+type CountTokensRequest struct {
+    Model    string    `json:"model"`
+    Messages []anthropic.Message `json:"messages"`
+}
+
+func (a *Anthropic) CountTokens(ctx context.Context, content string) (float32, error) {
+    reqBody := CountTokensRequest{
+        Model: string(a.config.Model),
+        Messages: []anthropic.Message{
+            {
+                Role:    "user",
+                Content: []anthropic.MessageContent{
+                    {
+                        Type: "text",
+                        Text: &content,
+                    },
+                },
+            },
+        },
+    }
+
+    jsonBody, err := json.Marshal(reqBody)
+    if err != nil {
+        return 0, fmt.Errorf("marshal request body: %w", err)
+    }
+
+    req, err := http.NewRequestWithContext(ctx, "POST", "https://api.anthropic.com/v1/messages/count_tokens", bytes.NewBuffer(jsonBody))
+    if err != nil {
+        return 0, fmt.Errorf("create request: %w", err)
+    }
+
+    req.Header.Set("x-api-key", a.config.APIKey)
+    req.Header.Set("anthropic-version", "2023-06-01")
+    req.Header.Set("anthropic-beta", "token-counting-2024-11-01")
+    req.Header.Set("content-type", "application/json")
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        return 0, fmt.Errorf("do request: %w", err)
+    }
+    defer resp.Body.Close()
+
+    if resp.StatusCode != http.StatusOK {
+        body, _ := io.ReadAll(resp.Body)
+        return 0, fmt.Errorf("unexpected status code %d: %s", resp.StatusCode, string(body))
+    }
+
+    var tokenResp CountTokensResponse
+    if err := json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {
+        return 0, fmt.Errorf("decode response: %w", err)
+    }
+
+    return float32(tokenResp.InputTokens), nil
+}
+
 func generateCacheKey(content, source, target string) string {
 	hash := sha256.Sum256([]byte(fmt.Sprintf("%s:%s:%s", content, source, target)))
 	return hex.EncodeToString(hash[:])
+}
+
+func (a *Anthropic) writeLog(entry interface{}) {
+	logFile := filepath.Join("unpackage", "translator.log")
+	
+	// Ensure directory exists
+	if err := os.MkdirAll(filepath.Dir(logFile), 0755); err != nil {
+		fmt.Printf("Error creating log directory: %v\n", err)
+		return
+	}
+
+	// Marshal the entry with indentation for readability
+	data, err := json.MarshalIndent(entry, "", "  ")
+	if err != nil {
+		fmt.Printf("Error marshaling log entry: %v\n", err)
+		return
+	}
+	data = append(data, '\n') // Add newline between entries
+
+	// Open file in append mode
+	f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		fmt.Printf("Error opening log file: %v\n", err)
+		return
+	}
+	defer f.Close()
+
+	if _, err := f.Write(data); err != nil {
+		fmt.Printf("Error writing to log file: %v\n", err)
+	}
 }

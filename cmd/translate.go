@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/liushuangls/go-anthropic/v2"
+	"github.com/nguyenvanduocit/epubtrans/pkg/editor"
 	"github.com/nguyenvanduocit/epubtrans/pkg/loader"
 	"github.com/nguyenvanduocit/epubtrans/pkg/processor"
 	"github.com/nguyenvanduocit/epubtrans/pkg/translator"
@@ -49,7 +49,8 @@ Make sure to provide the path to the unpacked EPUB directory and the desired lan
 func init() {
 	Translate.Flags().StringVar(&sourceLanguage, "source", "English", "source language")
 	Translate.Flags().StringVar(&targetLanguage, "target", "Vietnamese", "target language")
-	Translate.Flags().String("model", string(anthropic.ModelClaude3Dot5SonnetLatest), "Anthropic model to use")
+	Translate.Flags().String("model", "claude-3-5-sonnet-20241022", "Anthropic model to use")
+	Translate.Flags().String("prompt", "technical", "Prompt preset to use")
 }
 
 type elementToTranslate struct {
@@ -63,6 +64,7 @@ type elementToTranslate struct {
 
 type translationBatch struct {
 	elements []elementToTranslate
+	wordCount float32
 }
 
 var fileLocks = make(map[string]*sync.Mutex)
@@ -79,6 +81,20 @@ func getFileLock(filePath string) *sync.Mutex {
 	lock := &sync.Mutex{}
 	fileLocks[filePath] = lock
 	return lock
+}
+
+func saveGuidelines(unzipPath string, guidelines string) error {
+	metaInfPath := path.Join(unzipPath, "META-INF")
+	if err := os.MkdirAll(metaInfPath, 0755); err != nil {
+		return fmt.Errorf("failed to create META-INF directory: %w", err)
+	}
+
+	guidelinesPath := path.Join(metaInfPath, "guidelines.txt")
+	if err := os.WriteFile(guidelinesPath, []byte(guidelines), 0644); err != nil {
+		return fmt.Errorf("failed to write guidelines file: %w", err)
+	}
+
+	return nil
 }
 
 func runTranslate(cmd *cobra.Command, args []string) error {
@@ -106,16 +122,59 @@ func runTranslate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("error extracting book name: %v", err)
 	}
 
+	// Kiểm tra model flag
+	model := cmd.Flag("model").Value.String()
+	if model == "" {
+		return fmt.Errorf("model flag is required")
+	}
+
+	// Kiểm tra API key
+	apiKey := os.Getenv("ANTHROPIC_API_KEY")
+	if apiKey == "" {
+		return fmt.Errorf("ANTHROPIC_API_KEY environment variable is not set")
+	}
+
 	limiter := rate.NewLimiter(rate.Every(time.Minute/50), 10)
 
-	anthropicTranslator, err := translator.GetAnthropicTranslator(&translator.Config{
-		APIKey:      os.Getenv("ANTHROPIC_KEY"),
-		Model:       cmd.Flag("model").Value.String(),
-		Temperature: 0.7,
-		MaxTokens:   8192,
+	// Check for existing guidelines
+	guidelinesPath := path.Join(unzipPath, "META-INF", "guidelines.txt")
+	guidelines := ""
+	
+	if guidelinesContent, err := os.ReadFile(guidelinesPath); err == nil {
+		// Use existing guidelines
+		guidelines = string(guidelinesContent)
+		fmt.Println("Using existing translation guidelines from META-INF/guidelines.txt")
+	} else {
+		// Generate new guidelines if file doesn't exist
+		geminiEditor := editor.NewGemini()
+		newGuidelines, err := geminiEditor.GenerateGuidelines(ctx, sourceLanguage, targetLanguage, bookName)
+		if err != nil {
+			fmt.Printf("Warning: Failed to generate guidelines: %v\n", err)
+		} else {
+			guidelines = newGuidelines
+			// Save guidelines to META-INF/guidelines.txt
+			if err := saveGuidelines(unzipPath, guidelines); err != nil {
+				fmt.Printf("Warning: Failed to save guidelines: %v\n", err)
+			} else {
+				fmt.Println("New translation guidelines saved to META-INF/guidelines.txt")
+			}
+		}
+	}
+
+	deepseekTranslator, err := translator.GetAnthropicTranslator(&translator.Config{
+		APIKey:                apiKey,
+		Model:                model,
+		Temperature:          0.7,
+		MaxTokens:           8192,
+		TranslationGuidelines: guidelines,
 	})
 	if err != nil {
 		return fmt.Errorf("error getting translator: %v", err)
+	}
+
+	promptPreset := cmd.Flag("prompt").Value.String()
+	if promptPreset == "" {
+		return fmt.Errorf("prompt flag is required")
 	}
 
 	// 1 worker and 1 job at a time, mean 1 file at a time
@@ -124,108 +183,165 @@ func runTranslate(cmd *cobra.Command, args []string) error {
 		JobBuffer:    1,
 		ResultBuffer: 10,
 	}, func(ctx context.Context, filePath string) error {
-		return processFileDirectly(ctx, filePath, anthropicTranslator, limiter, bookName)
+		return processFileDirectly(ctx, filePath, deepseekTranslator, limiter, bookName, promptPreset)
 	})
 
 	return err
 }
 
-func processFileDirectly(ctx context.Context, filePath string, translator translator.Translator, limiter *rate.Limiter, bookName string) error {
-    fmt.Printf("\nProcessing file: %s\n", path.Base(filePath))
+var estimatedTokensPerWord float32 = 1.5
+
+func processFileDirectly(ctx context.Context, filePath string, translator translator.Translator, limiter *rate.Limiter, bookName string, promptPreset string) error {
+	if translator == nil {
+		return fmt.Errorf("translator is nil")
+	}
+	if limiter == nil {
+		return fmt.Errorf("rate limiter is nil")
+	}
+	if bookName == "" {
+		return fmt.Errorf("book name is empty")
+	}
+	if promptPreset == "" {
+		return fmt.Errorf("prompt preset is empty")
+	}
+
+	fmt.Printf("\nProcessing file: %s\n", path.Base(filePath))
     
-    doc, err := openAndReadFile(filePath)
-    if err != nil {
-        return err
-    }
+	doc, err := util.OpenAndReadFile(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to open and read file: %w", err)
+	}
 
-    ensureUTF8Charset(doc)
+	ensureUTF8Charset(doc)
 
-    selector := fmt.Sprintf("[%s]:not([%s])", util.ContentIdKey, util.TranslationByIdKey)
-    elements := doc.Find(selector)
+	selector := fmt.Sprintf("[%s]:not([%s])", util.ContentIdKey, util.TranslationByIdKey)
+	elements := doc.Find(selector)
 
-    if elements.Length() == 0 {
-        fmt.Printf("No elements to translate in %s\n", path.Base(filePath))
-        return nil
-    }
+	if elements == nil {
+		return fmt.Errorf("failed to find elements with selector: %s", selector)
+	}
 
-    fmt.Printf("Found %d elements to translate in %s\n", 
-        elements.Length(), path.Base(filePath))
+	if elements.Length() == 0 {
+		fmt.Printf("No elements to translate in %s\n", path.Base(filePath))
+		return nil
+	}
 
-    // Create batches directly
-    var currentBatch translationBatch
-    maxBatchLength := 4000
+	fmt.Printf("Found %d elements to translate in %s\n", 
+		elements.Length(), path.Base(filePath))
 
-    elements.Each(func(i int, contentEl *goquery.Selection) {
-        select {
-        case <-ctx.Done():
-            return
-        default:
-            htmlContent, err := contentEl.Html()
-            if err != nil || len(htmlContent) <= 1 {
-                return
-            }
+	// Create batches directly
+	currentBatch := translationBatch{
+		wordCount: 0,
+	}
 
-            element := elementToTranslate{
-                filePath:      filePath,
-                contentEl:     contentEl,
-                doc:           doc,
-                totalElements: elements.Length(),
-                index:         i,
-                content:      htmlContent,
-            }
+	maxBatchLength := float32(1500)
 
-            currentBatchLength := getBatchLength(&currentBatch)
-            if currentBatchLength+len(htmlContent) > maxBatchLength && len(currentBatch.elements) > 0 {
-                // Process current batch
-                processBatch(ctx, filePath, currentBatch, translator, limiter, bookName)
-                // Start new batch
-                currentBatch = translationBatch{
-                    elements: []elementToTranslate{element},
-                }
-            } else {
-                currentBatch.elements = append(currentBatch.elements, element)
-            }
-        }
-    })
+	elements.Each(func(i int, contentEl *goquery.Selection) {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			htmlContent, err := contentEl.Html()
+			if err != nil || len(htmlContent) <= 1 {
+				return
+			}
 
-    // Process final batch if not empty
-    if len(currentBatch.elements) > 0 {
-        processBatch(ctx, filePath, currentBatch, translator, limiter, bookName)
-    }
+			element := elementToTranslate{
+				filePath:      filePath,
+				contentEl:     contentEl,
+				doc:           doc,
+				totalElements: elements.Length(),
+				index:         i,
+				content:      htmlContent,
+			}
 
-    return nil
+			estimatedTokens := (currentBatch.wordCount + float32(len(strings.Fields(htmlContent)))) * estimatedTokensPerWord
+
+			if estimatedTokens > maxBatchLength {	
+				estimatedTokens = getBatchLength(ctx, &currentBatch, translator)
+				fmt.Printf("Counted tokens: %f\n", estimatedTokens)
+				estimatedTokensPerWord = estimatedTokens / currentBatch.wordCount // update estimated tokens per word
+			} else {
+				fmt.Printf("Estimated tokens: %f\n", estimatedTokens)
+			}
+
+			if estimatedTokens > maxBatchLength && len(currentBatch.elements) > 0 {
+				// Process current batch
+				processBatch(ctx, filePath, currentBatch, translator, limiter, bookName, promptPreset)
+				// Start new batch
+				currentBatch = translationBatch{
+					elements: []elementToTranslate{element},
+					wordCount: float32(len(strings.Fields(htmlContent))),
+				}
+			} else {
+				currentBatch.elements = append(currentBatch.elements, element)
+				currentBatch.wordCount += float32(len(strings.Fields(htmlContent)))
+			}
+		}
+	})
+
+	// Process final batch if not empty
+	if len(currentBatch.elements) > 0 {
+		processBatch(ctx, filePath, currentBatch, translator, limiter, bookName, promptPreset)
+	}
+
+	return nil
 }
 
 func extractBookName(unzipPath string) (string, error) {
-    container, err := loader.ParseContainer(unzipPath)
-    if err != nil {
-        return "", fmt.Errorf("failed to parse container: %w", err)
-    }
-
-    packagePath := path.Join(unzipPath, container.Rootfile.FullPath)
-    pkg, err := loader.ParsePackage(packagePath)
-    if err != nil {
-        return "", fmt.Errorf("failed to parse package: %w", err)
-    }
-
-    return pkg.Metadata.Title, nil
-}
-
-func getBatchLength(batch *translationBatch) int {
-	var length int
-	for _, element := range batch.elements {
-		length += len(element.content)
+	container, err := loader.ParseContainer(unzipPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse container: %w", err)
 	}
-	return length
+
+	packagePath := path.Join(unzipPath, container.Rootfile.FullPath)
+	pkg, err := loader.ParsePackage(packagePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse package: %w", err)
+	}
+
+	return pkg.Metadata.Title, nil
 }
 
-func processBatch(ctx context.Context, filePath string, batch translationBatch, anthropicTranslator translator.Translator, limiter *rate.Limiter, bookName string) {
+func getBatchLength(ctx context.Context, batch *translationBatch, translator translator.Translator) float32 {
+	if batch == nil {
+		fmt.Printf("Error: batch is nil\n")
+		return 0
+	}
+	if translator == nil {
+		fmt.Printf("Error: translator is nil\n")
+		return 0
+	}
+
+	var allContent string
+	for _, element := range batch.elements {
+		if element.content == "" {
+			continue
+		}
+		allContent += element.content
+	}
+
+	if allContent == "" {
+		fmt.Printf("Warning: empty content in batch\n")
+		return 0
+	}
+	
+	count, err := translator.CountTokens(ctx, allContent)
+	if err != nil {
+		fmt.Printf("Error counting tokens: %v\n", err)
+		return 0
+	}
+	
+	return count
+}
+
+func processBatch(ctx context.Context, filePath string, batch translationBatch, anthropicTranslator translator.Translator, limiter *rate.Limiter, bookName string, promptPreset string) {
 	if len(batch.elements) == 0 {
 		return
 	}
 
-	fmt.Printf("\nTranslating batch from file %s (segments: %d; length: %d)\n", 
-		path.Base(filePath), len(batch.elements), getBatchLength(&batch))
+	fmt.Printf("\nTranslating batch from file %s (Elements: %d, Word Count: %f\n", 
+		path.Base(filePath), len(batch.elements), batch.wordCount)
 
 	// Combine contents with more distinct markers and instructions
 	var combinedContent strings.Builder
@@ -236,7 +352,7 @@ func processBatch(ctx context.Context, filePath string, batch translationBatch, 
 	}
 
 	// Translate combined content
-	translatedContent, err := retryTranslate(ctx, anthropicTranslator, limiter, combinedContent.String(), sourceLanguage, targetLanguage, bookName)
+	translatedContent, err := retryTranslate(ctx, anthropicTranslator, limiter, combinedContent.String(), sourceLanguage, targetLanguage, bookName, promptPreset)
 	if err != nil {
 		fmt.Printf("Batch translation error: %v\n", err)
 		return
@@ -247,7 +363,27 @@ func processBatch(ctx context.Context, filePath string, batch translationBatch, 
 	if len(translations) != len(batch.elements) {
 		fmt.Printf("Translation segments mismatch for %s: got %d, expected %d\n", 
 			path.Base(filePath), len(translations), len(batch.elements))
-		return
+		
+		// Write debug information to file
+		debugFilePath := filePath + ".debug.txt"
+		debugContent := fmt.Sprintf("Original Request:\n%s\n\nTranslated Response:\n%s\n\nExpected segments: %d\nReceived segments: %d",
+			combinedContent.String(),
+			translatedContent,
+			len(batch.elements),
+			len(translations))
+			
+		if err := os.WriteFile(debugFilePath, []byte(debugContent), 0644); err != nil {
+			fmt.Printf("Failed to write debug file: %v\n", err)
+		} else {
+			fmt.Printf("Debug information written to: %s\n", debugFilePath)
+		}
+		
+		// Process as many translations as we have
+		minLen := min(len(translations), len(batch.elements))
+		translations = translations[:minLen]
+		batch.elements = batch.elements[:minLen]
+		
+		fmt.Printf("Proceeding with %d valid translations\n", minLen)
 	}
 
 	fmt.Printf("Successfully translated batch from %s, writing to file...\n", path.Base(filePath))
@@ -288,25 +424,14 @@ func splitTranslations(translatedContent string) []string {
 	return translations
 }
 
-func openAndReadFile(filePath string) (*goquery.Document, error) {
-	file, err := os.Open(filePath)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	return goquery.NewDocumentFromReader(file)
-}
-
 func ensureUTF8Charset(doc *goquery.Document) {
 	charset, _ := doc.Find("meta[charset]").Attr("charset")
 	if charset != "utf-8" {
 		doc.Find("head").AppendHtml(`<meta charset="utf-8">`)
 	}
-
 }
 
-func retryTranslate(ctx context.Context, t translator.Translator, limiter *rate.Limiter, content, sourceLang, targetLang, bookName string) (string, error) {
+func retryTranslate(ctx context.Context, t translator.Translator, limiter *rate.Limiter, content, sourceLang, targetLang, bookName, promptPreset string) (string, error) {
 	maxRetries := 3
 	baseDelay := time.Second
 
@@ -320,7 +445,7 @@ func retryTranslate(ctx context.Context, t translator.Translator, limiter *rate.
 				return "", fmt.Errorf("rate limiter error: %w", err)
 			}
 
-			translatedContent, err := t.Translate(ctx, "", content, sourceLang, targetLang, bookName)
+			translatedContent, err := t.Translate(ctx, promptPreset, content, sourceLang, targetLang, bookName)
 			if err == nil {
 				return translatedContent, nil
 			}
@@ -424,4 +549,11 @@ func writeContentToFile(filePath string, doc *goquery.Document) error {
 func countWords(text string) int {
 	words := strings.Fields(text)
 	return len(words)
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
